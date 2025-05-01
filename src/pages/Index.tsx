@@ -1,4 +1,5 @@
 
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +16,7 @@ const Index = () => {
   };
 
   // Check if user is already logged in
-  React.useEffect(() => {
+  useEffect(() => {
     checkAuth();
   }, []);
 
