@@ -53,8 +53,11 @@ const SignupForm = () => {
     setIsLoading(true);
 
     try {
-      console.log("Attempting to sign up with:", email);
-      const { error, userCreated } = await signUp(email, password);
+      // Trim email to prevent whitespace issues
+      const trimmedEmail = email.trim();
+      console.log("Attempting to sign up with:", trimmedEmail);
+      
+      const { error, userCreated } = await signUp(trimmedEmail, password);
       
       if (error) {
         console.error("Sign up error details:", error);
@@ -90,6 +93,17 @@ const SignupForm = () => {
           duration: 5000,
         });
         navigate("/login");
+        return;
+      }
+      
+      // Handle existing user error
+      if (error.message && error.message.includes("User already registered")) {
+        toast({
+          title: "Account already exists",
+          description: "An account with this email already exists. Please log in instead.",
+          variant: "destructive",
+          duration: 5000,
+        });
         return;
       }
       

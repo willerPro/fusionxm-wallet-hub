@@ -67,7 +67,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      // Trim email to prevent whitespace issues
+      const trimmedEmail = email.trim();
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email: trimmedEmail, 
+        password 
+      });
+      
       console.log("Sign in result:", error ? "Error" : "Success", data?.user?.email);
       
       if (!error && data?.user) {
@@ -83,8 +89,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     try {
+      // Trim email to prevent whitespace issues
+      const trimmedEmail = email.trim();
+      
       // First attempt to create the user
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({ 
+        email: trimmedEmail, 
+        password 
+      });
+      
       console.log("Sign up result:", error ? "Error" : "Success", data?.user?.email);
       
       if (error) {
@@ -94,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Try to log in with the credentials to see if the user was actually created
           const { error: loginError } = await supabase.auth.signInWithPassword({ 
-            email, 
+            email: trimmedEmail, 
             password 
           });
           

@@ -37,7 +37,32 @@ const LoginForm = () => {
       
       if (error) {
         console.error("Login error details:", error);
-        throw error;
+        
+        // Provide more specific error messages based on the error
+        if (error.message && error.message.includes("Invalid login credentials")) {
+          toast({
+            title: "Login failed",
+            description: "The email or password you entered is incorrect. Please check your credentials and try again.",
+            variant: "destructive",
+            duration: 5000,
+          });
+        } else if (error.message && error.message.includes("Email not confirmed")) {
+          toast({
+            title: "Email not confirmed",
+            description: "Please check your email inbox and confirm your email before logging in.",
+            variant: "destructive",
+            duration: 5000,
+          });
+        } else {
+          toast({
+            title: "Login failed",
+            description: error.message || "Please check your credentials and try again.",
+            variant: "destructive",
+            duration: 5000,
+          });
+        }
+        setIsLoading(false);
+        return;
       }
       
       console.log("Login successful, redirecting to dashboard");
