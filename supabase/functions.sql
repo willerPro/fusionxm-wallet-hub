@@ -1,39 +1,108 @@
 
--- Function to increment a wallet's balance
-CREATE OR REPLACE FUNCTION public.increment_wallet_balance(wallet_id_param UUID, amount_param DECIMAL)
-RETURNS VOID AS $$
+-- Create function to get user bots safely (checks if bots table exists first)
+CREATE OR REPLACE FUNCTION public.get_user_bots()
+RETURNS SETOF json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  table_exists BOOLEAN;
+BEGIN
+  -- Check if the bots table exists
+  SELECT EXISTS (
+    SELECT 1
+    FROM   information_schema.tables 
+    WHERE  table_schema = 'public'
+    AND    table_name = 'bots'
+  ) INTO table_exists;
+
+  -- If the bots table exists, return the user's bots
+  IF table_exists THEN
+    RETURN QUERY
+    SELECT json_build_object(
+      'id', b.id,
+      'user_id', b.user_id,
+      'wallet_id', b.wallet_id,
+      'bot_type', b.bot_type,
+      'duration', b.duration,
+      'profit_target', b.profit_target,
+      'amount', b.amount,
+      'status', b.status,
+      'created_at', b.created_at,
+      'updated_at', b.updated_at
+    )
+    FROM public.bots b
+    WHERE b.user_id = auth.uid();
+  ELSE
+    -- Return an empty result if the table doesn't exist
+    RETURN;
+  END IF;
+END;
+$$;
+
+-- Create a function to increment wallet balance safely
+CREATE OR REPLACE FUNCTION public.increment_wallet_balance(wallet_id_param UUID, amount_param NUMERIC)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 BEGIN
   UPDATE public.wallets
-  SET balance = COALESCE(balance, 0) + amount_param,
-      updated_at = now()
-  WHERE id = wallet_id_param;
+  SET balance = COALESCE(balance, 0) + amount_param
+  WHERE id = wallet_id_param
+  AND user_id = auth.uid();
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
--- Function to decrement a wallet's balance
-CREATE OR REPLACE FUNCTION public.decrement_wallet_balance(wallet_id_param UUID, amount_param DECIMAL)
-RETURNS VOID AS $$
-BEGIN
-  UPDATE public.wallets
-  SET balance = COALESCE(balance, 0) - amount_param,
-      updated_at = now()
-  WHERE id = wallet_id_param;
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to create a new bot
+-- Create a function to create a new bot
 CREATE OR REPLACE FUNCTION public.create_bot(
   user_id_param UUID,
   wallet_id_param UUID,
   bot_type_param TEXT,
   duration_param INTEGER,
-  profit_target_param DECIMAL,
-  amount_param DECIMAL
+  profit_target_param INTEGER,
+  amount_param NUMERIC
 )
-RETURNS UUID AS $$
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 DECLARE
-  bot_id UUID;
+  new_bot_id UUID;
+  table_exists BOOLEAN;
 BEGIN
+  -- Check if the bots table exists
+  SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.tables 
+    WHERE table_schema = 'public'
+    AND table_name = 'bots'
+  ) INTO table_exists;
+
+  -- Create the bots table if it doesn't exist
+  IF NOT table_exists THEN
+    CREATE TABLE public.bots (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES auth.users(id),
+      wallet_id UUID NOT NULL REFERENCES public.wallets(id),
+      bot_type TEXT NOT NULL CHECK (bot_type IN ('binary', 'nextbase', 'contract')),
+      duration INTEGER NOT NULL,
+      profit_target INTEGER NOT NULL,
+      amount NUMERIC NOT NULL,
+      status TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'paused', 'completed', 'failed')),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    -- Add RLS policies
+    ALTER TABLE public.bots ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY "Users can view their own bots" ON public.bots FOR SELECT USING (auth.uid() = user_id);
+    CREATE POLICY "Users can insert their own bots" ON public.bots FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "Users can update their own bots" ON public.bots FOR UPDATE USING (auth.uid() = user_id);
+    CREATE POLICY "Users can delete their own bots" ON public.bots FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+
+  -- Insert the new bot
   INSERT INTO public.bots (
     user_id,
     wallet_id,
@@ -50,11 +119,15 @@ BEGIN
     profit_target_param,
     amount_param,
     'running'
-  ) RETURNING id INTO bot_id;
-  
-  -- Deduct the amount from the wallet
-  PERFORM public.decrement_wallet_balance(wallet_id_param, amount_param);
-  
-  RETURN bot_id;
+  )
+  RETURNING id INTO new_bot_id;
+
+  -- Update wallet balance (subtract the amount)
+  UPDATE public.wallets
+  SET balance = balance - amount_param
+  WHERE id = wallet_id_param AND user_id = user_id_param;
+
+  -- Return the new bot ID
+  RETURN json_build_object('id', new_bot_id);
 END;
-$$ LANGUAGE plpgsql;
+$$;

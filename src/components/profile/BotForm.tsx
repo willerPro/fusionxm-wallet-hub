@@ -82,18 +82,22 @@ const BotForm = ({ botType, onSuccess, onCancel }: BotFormProps) => {
         throw new Error("Insufficient wallet balance");
       }
 
-      // Call the Supabase function to create a bot
+      // Use direct insert instead of RPC function
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error("Not authenticated");
       
-      const { data, error } = await supabase.rpc('create_bot', {
-        user_id_param: user.user.id,
-        wallet_id_param: formData.wallet_id,
-        bot_type_param: formData.bot_type,
-        duration_param: formData.duration,
-        profit_target_param: formData.profit_target,
-        amount_param: formData.amount
-      });
+      const { data, error } = await supabase
+        .from('bots')
+        .insert({
+          user_id: user.user.id,
+          wallet_id: formData.wallet_id,
+          bot_type: formData.bot_type,
+          duration: formData.duration,
+          profit_target: formData.profit_target,
+          amount: formData.amount,
+          status: 'running'
+        })
+        .select();
       
       if (error) throw error;
       

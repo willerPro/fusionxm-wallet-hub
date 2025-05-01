@@ -97,24 +97,36 @@ const Deposit = () => {
     setIsLoading(true);
     
     try {
-      // First, call the RPC function to increment the wallet balance
-      const { error: rpcError } = await supabase.rpc(
-        'increment_wallet_balance',
-        { 
-          wallet_id_param: selectedWalletId, 
-          amount_param: parseFloat(amount)
-        }
-      );
+      // Update wallet balance directly
+      const numericAmount = parseFloat(amount);
       
-      if (rpcError) throw rpcError;
+      // Get current wallet
+      const { data: walletData, error: walletError } = await supabase
+        .from('wallets')
+        .select('balance')
+        .eq('id', selectedWalletId)
+        .single();
+        
+      if (walletError) throw walletError;
       
-      // Then, record the transaction
+      const currentBalance = Number(walletData.balance || 0);
+      const newBalance = currentBalance + numericAmount;
+      
+      // Update wallet balance
+      const { error: updateError } = await supabase
+        .from('wallets')
+        .update({ balance: newBalance })
+        .eq('id', selectedWalletId);
+        
+      if (updateError) throw updateError;
+      
+      // Record the transaction
       const { error: transactionError } = await supabase
         .from('transactions')
         .insert([{
           wallet_id: selectedWalletId,
           user_id: user.id,
-          amount: parseFloat(amount),
+          amount: numericAmount,
           type: 'deposit',
           status: 'completed'
         }]);

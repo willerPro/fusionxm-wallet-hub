@@ -39,7 +39,7 @@ const WalletCard = ({ wallet, onSelect }: WalletCardProps) => {
       <CardContent className="p-6">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium text-primary">{wallet.name}</h3>
-          {wallet.passwordProtected && <Lock className="h-4 w-4 text-primary" title="Password protected" />}
+          {wallet.passwordProtected && <Lock className="h-4 w-4 text-primary" aria-label="Password protected" />}
         </div>
         <p className="mt-1 text-2xl font-semibold">{formattedBalance}</p>
         

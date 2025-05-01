@@ -21,17 +21,15 @@ const BotsSection = () => {
   
   useEffect(() => {
     const setupBots = async () => {
-      // Check if bots table exists, if not, handle gracefully
-      try {
-        await supabase.from('bots').select('count').limit(1);
-      } catch (error) {
-        console.error("Bots table might not exist yet:", error);
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         setIsLoading(false);
         return;
       }
       
-      await fetchBots();
       await fetchWallets();
+      await fetchBots();
     };
     
     setupBots();
@@ -40,20 +38,18 @@ const BotsSection = () => {
   const fetchBots = async () => {
     try {
       setIsLoading(true);
+      
+      // Use custom SQL query to handle cases where bots table might not exist yet
       const { data, error } = await supabase
-        .from('bots')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .rpc('get_user_bots');
       
       if (error) {
-        if (error.code === "PGRST116") {
-          // No data found, not an error
-          setBots([]);
-        } else {
-          throw error;
-        }
+        console.error("Error fetching bots:", error);
+        setBots([]);
+      } else if (data) {
+        setBots(data as Bot[]);
       } else {
-        setBots(data as Bot[] || []);
+        setBots([]);
       }
     } catch (error) {
       console.error("Error fetching bots:", error);
@@ -79,10 +75,12 @@ const BotsSection = () => {
       const walletNameMap: Record<string, string> = {};
       let totalWalletBalance = 0;
       
-      data.forEach((wallet: { id: string; name: string; balance: number }) => {
-        walletNameMap[wallet.id] = wallet.name;
-        totalWalletBalance += parseFloat(wallet.balance.toString());
-      });
+      if (data) {
+        data.forEach((wallet: { id: string; name: string; balance: number }) => {
+          walletNameMap[wallet.id] = wallet.name;
+          totalWalletBalance += parseFloat(wallet.balance?.toString() || '0');
+        });
+      }
       
       setWalletMap(walletNameMap);
       setTotalBalance(totalWalletBalance);
