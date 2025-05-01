@@ -1,66 +1,49 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Bot as LucideBot, AlertCircle, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Bot } from "@/types/bot";
-import BotCard from "./BotCard";
+import { Bot, BotType } from "@/types/bot";
 import BotForm from "./BotForm";
+import BotCard from "./BotCard";
+import { PlusCircle, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthContext";
+import type { Database } from "@/types/supabase"; // Import the updated Database type
+
+type Wallet = {
+  id: string;
+  name: string;
+  balance: number;
+  currency: string;
+};
 
 const BotsSection = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [bots, setBots] = useState<Bot[]>([]);
-  const [walletMap, setWalletMap] = useState<Record<string, string>>({});
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedBotType, setSelectedBotType] = useState<'binary' | 'nextbase' | 'contract' | null>(null);
-  const [totalBalance, setTotalBalance] = useState(0);
-  
+  const [isCreating, setIsCreating] = useState(false);
+
   useEffect(() => {
-    const setupBots = async () => {
-      // Check if user is authenticated
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setIsLoading(false);
-        return;
-      }
-      
-      await fetchWallets();
-      await fetchBots();
-    };
-    
-    setupBots();
-  }, []);
-  
+    if (user) {
+      fetchBots();
+      fetchWallets();
+    }
+  }, [user]);
+
   const fetchBots = async () => {
     try {
       setIsLoading(true);
+      // Use RPC function to get user bots safely
+      const { data, error } = await supabase.rpc('get_user_bots');
       
-      // First check if the table exists to avoid errors
-      const { data: checkTable, error: checkError } = await supabase
-        .from('bots')
-        .select('id')
-        .limit(1);
+      if (error) throw error;
       
-      if (checkError && checkError.code === 'PGRST204') {
-        // Table doesn't exist yet
-        console.log("Bots table doesn't exist yet");
-        setBots([]);
-        setIsLoading(false);
-        return;
-      }
-      
-      const { data, error } = await supabase
-        .from('bots')
-        .select('*');
-      
-      if (error) {
-        console.error("Error fetching bots:", error);
-        setBots([]);
-      } else if (data) {
+      if (data) {
+        // The data is already an array of bots in the correct format
         setBots(data as Bot[]);
       } else {
         setBots([]);
@@ -69,74 +52,74 @@ const BotsSection = () => {
       console.error("Error fetching bots:", error);
       toast({
         title: "Error loading bots",
-        description: "There was a problem loading your bots.",
+        description: "There was a problem loading your trading bots.",
         variant: "destructive",
       });
-      setBots([]);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const fetchWallets = async () => {
     try {
       const { data, error } = await supabase
         .from('wallets')
-        .select('id, name, balance');
+        .select('id, name, balance, currency');
       
       if (error) throw error;
       
-      const walletNameMap: Record<string, string> = {};
-      let totalWalletBalance = 0;
-      
-      if (data) {
-        data.forEach((wallet: { id: string; name: string; balance: number }) => {
-          walletNameMap[wallet.id] = wallet.name;
-          totalWalletBalance += parseFloat(wallet.balance?.toString() || '0');
-        });
-      }
-      
-      setWalletMap(walletNameMap);
-      setTotalBalance(totalWalletBalance);
+      setWallets(data as Wallet[]);
     } catch (error) {
       console.error("Error fetching wallets:", error);
     }
   };
-  
-  const openBotDialog = (botType: 'binary' | 'nextbase' | 'contract') => {
-    setSelectedBotType(botType);
-    setDialogOpen(true);
-  };
-  
-  const handleBotCreated = () => {
-    setDialogOpen(false);
-    fetchBots();
-    fetchWallets();
-  };
-  
-  const isFunded = totalBalance > 0;
-  
-  const botTypes = [
-    { 
-      type: 'binary', 
-      name: 'Binary Trading (Pocket Option)', 
-      description: 'Automated binary options trading bot',
-      requiresFunds: 500
-    },
-    { 
-      type: 'nextbase', 
-      name: 'Nextbase Bot', 
-      description: 'Neural network trading algorithm',
-      requiresFunds: 3000
-    },
-    { 
-      type: 'contract', 
-      name: 'Contract Bot', 
-      description: 'Smart contract execution bot',
-      requiresFunds: 2600
+
+  const handleCreateBot = async (botData: {
+    walletId: string;
+    botType: BotType;
+    duration: number;
+    profitTarget: number;
+    amount: number;
+  }) => {
+    if (!user) return;
+    
+    setIsCreating(true);
+    
+    try {
+      // Use RPC function to create the bot and update wallet balance
+      const { data, error } = await supabase.rpc('create_bot', {
+        user_id_param: user.id,
+        wallet_id_param: botData.walletId,
+        bot_type_param: botData.botType,
+        duration_param: botData.duration,
+        profit_target_param: botData.profitTarget,
+        amount_param: botData.amount
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Bot created",
+        description: `Your ${botData.botType} trading bot has been created successfully.`,
+      });
+      
+      setIsDialogOpen(false);
+      
+      // Refresh the bots and wallets data
+      fetchBots();
+      fetchWallets();
+    } catch (error: any) {
+      console.error("Error creating bot:", error);
+      toast({
+        title: "Error creating bot",
+        description: error.message || "There was a problem creating your bot.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
     }
-  ];
-  
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -144,86 +127,52 @@ const BotsSection = () => {
       </div>
     );
   }
-  
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {botTypes.map((bot) => (
-          <Card key={bot.type} className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="bg-primary/10 p-2 rounded-md">
-                    <LucideBot className="h-6 w-6 text-primary" />
-                  </div>
-                  <Button
-                    variant={totalBalance >= bot.requiresFunds ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => openBotDialog(bot.type as 'binary' | 'nextbase' | 'contract')}
-                    disabled={totalBalance < bot.requiresFunds}
-                  >
-                    {totalBalance >= bot.requiresFunds ? 'Enable' : 'Disabled'}
-                  </Button>
-                </div>
-                <h3 className="text-lg font-semibold mb-1">{bot.name}</h3>
-                <p className="text-sm text-gray-500 mb-4">{bot.description}</p>
-                
-                {totalBalance < bot.requiresFunds && (
-                  <div className="flex items-center gap-2 text-amber-600 text-sm">
-                    <AlertCircle className="h-4 w-4" />
-                    <span>Requires ${bot.requiresFunds} minimum funds</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold">Trading Bots</h2>
+        <Button 
+          variant="default"
+          onClick={() => setIsDialogOpen(true)}
+          disabled={wallets.length === 0}
+        >
+          <PlusCircle className="mr-2 h-4 w-4" /> New Bot
+        </Button>
       </div>
-      
-      {!isFunded && (
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-amber-800">
-          <div className="flex gap-2 items-center mb-2">
-            <AlertCircle className="h-5 w-5" />
-            <h3 className="font-medium">No funds available</h3>
-          </div>
-          <p className="text-sm">
-            You need to fund your wallet before you can use any trading bots. 
-            Visit the Wallets page to create a wallet and deposit funds.
+
+      {wallets.length === 0 && (
+        <div className="bg-yellow-50 border border-yellow-100 rounded-md p-4 mb-6">
+          <p className="text-yellow-700">
+            You need to create a wallet before you can create a trading bot. Go to the Wallets page to create one.
           </p>
         </div>
       )}
-      
-      {bots.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold mb-4">Your Active Bots</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {bots.map((bot) => (
-              <BotCard key={bot.id} bot={bot} walletName={walletMap[bot.wallet_id]} />
-            ))}
+
+      <div className="space-y-4">
+        {bots.length > 0 ? (
+          bots.map((bot) => (
+            <BotCard key={bot.id} bot={bot} />
+          ))
+        ) : (
+          <div className="text-center py-10 border rounded-lg bg-slate-50">
+            <p className="text-gray-500 mb-4">You don't have any trading bots yet</p>
+            <Button 
+              onClick={() => setIsDialogOpen(true)}
+              disabled={wallets.length === 0}
+            >
+              Create Your First Bot
+            </Button>
           </div>
-        </div>
-      )}
-      
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        )}
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {selectedBotType && `Configure ${
-                selectedBotType === 'binary'
-                  ? 'Binary Trading Bot'
-                  : selectedBotType === 'nextbase'
-                  ? 'Nextbase Bot'
-                  : 'Contract Bot'
-              }`}
-            </DialogTitle>
+            <DialogTitle>Create Trading Bot</DialogTitle>
           </DialogHeader>
-          {selectedBotType && (
-            <BotForm
-              botType={selectedBotType}
-              onSuccess={handleBotCreated}
-              onCancel={() => setDialogOpen(false)}
-            />
-          )}
+          <BotForm onSubmit={handleCreateBot} isLoading={isCreating} wallets={wallets} />
         </DialogContent>
       </Dialog>
     </div>

@@ -19,5 +19,14 @@ export type Database = GeneratedDatabase & {
         };
       };
     };
+    Functions: {
+      delete_wallet: {
+        Args: {
+          wallet_id_param: string;
+          password_param: string;
+        };
+        Returns: undefined;
+      };
+    };
   };
 };

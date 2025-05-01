@@ -122,6 +122,10 @@ const Wallets = () => {
     }
   };
 
+  const handleDeleteWallet = (walletId: string) => {
+    setWallets(wallets.filter(wallet => wallet.id !== walletId));
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -145,7 +149,12 @@ const Wallets = () => {
       <div className="space-y-4">
         {wallets.length > 0 ? (
           wallets.map((wallet) => (
-            <WalletCard key={wallet.id} wallet={wallet} />
+            <WalletCard 
+              key={wallet.id} 
+              wallet={wallet} 
+              onDelete={handleDeleteWallet}
+              refetchWallets={fetchWallets}
+            />
           ))
         ) : (
           <div className="text-center py-10">
