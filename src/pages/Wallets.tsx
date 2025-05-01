@@ -49,6 +49,7 @@ const Wallets = () => {
         name: wallet.name,
         balance: Number(wallet.balance || 0),
         currency: wallet.currency,
+        passwordProtected: wallet.password_protected || false
       }));
       
       setWallets(transformedWallets);
@@ -64,7 +65,13 @@ const Wallets = () => {
     }
   };
 
-  const handleCreateWallet = async (walletData: { name: string; currency: string }) => {
+  const handleCreateWallet = async (walletData: { 
+    name: string; 
+    currency: string;
+    password?: string;
+    passwordProtected: boolean;
+    backupKey?: string;
+  }) => {
     if (!user) return;
     
     setIsCreating(true);
@@ -76,7 +83,9 @@ const Wallets = () => {
           name: walletData.name, 
           currency: walletData.currency,
           balance: 0,
-          user_id: user.id
+          user_id: user.id,
+          password_protected: walletData.passwordProtected,
+          backup_key: walletData.backupKey
         }])
         .select();
       
@@ -88,6 +97,7 @@ const Wallets = () => {
           name: data[0].name,
           balance: Number(data[0].balance || 0),
           currency: data[0].currency,
+          passwordProtected: data[0].password_protected
         };
         
         setWallets([newWallet, ...wallets]);

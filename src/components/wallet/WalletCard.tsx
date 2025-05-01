@@ -2,12 +2,14 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Lock } from "lucide-react";
 
 export type Wallet = {
   id: string;
   name: string;
   balance: number;
   currency: string;
+  passwordProtected?: boolean;
 };
 
 type WalletCardProps = {
@@ -35,7 +37,10 @@ const WalletCard = ({ wallet, onSelect }: WalletCardProps) => {
       onClick={handleClick}
     >
       <CardContent className="p-6">
-        <h3 className="text-lg font-medium text-primary">{wallet.name}</h3>
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium text-primary">{wallet.name}</h3>
+          {wallet.passwordProtected && <Lock className="h-4 w-4 text-primary" title="Password protected" />}
+        </div>
         <p className="mt-1 text-2xl font-semibold">{formattedBalance}</p>
         
         <div className="mt-4 flex gap-2">

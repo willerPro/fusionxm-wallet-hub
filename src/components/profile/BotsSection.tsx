@@ -20,8 +20,21 @@ const BotsSection = () => {
   const [totalBalance, setTotalBalance] = useState(0);
   
   useEffect(() => {
-    fetchBots();
-    fetchWallets();
+    const setupBots = async () => {
+      // Check if bots table exists, if not, handle gracefully
+      try {
+        await supabase.from('bots').select('count').limit(1);
+      } catch (error) {
+        console.error("Bots table might not exist yet:", error);
+        setIsLoading(false);
+        return;
+      }
+      
+      await fetchBots();
+      await fetchWallets();
+    };
+    
+    setupBots();
   }, []);
   
   const fetchBots = async () => {
@@ -32,9 +45,16 @@ const BotsSection = () => {
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      
-      setBots(data || []);
+      if (error) {
+        if (error.code === "PGRST116") {
+          // No data found, not an error
+          setBots([]);
+        } else {
+          throw error;
+        }
+      } else {
+        setBots(data as Bot[] || []);
+      }
     } catch (error) {
       console.error("Error fetching bots:", error);
       toast({
@@ -42,6 +62,7 @@ const BotsSection = () => {
         description: "There was a problem loading your bots.",
         variant: "destructive",
       });
+      setBots([]);
     } finally {
       setIsLoading(false);
     }

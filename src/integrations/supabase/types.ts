@@ -152,31 +152,76 @@ export type Database = {
           },
         ]
       }
+      user_settings: {
+        Row: {
+          bot_alerts: boolean | null
+          created_at: string | null
+          email_alerts: boolean | null
+          id: string
+          login_alerts: boolean | null
+          market_alerts: boolean | null
+          news_updates: boolean | null
+          two_factor: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bot_alerts?: boolean | null
+          created_at?: string | null
+          email_alerts?: boolean | null
+          id?: string
+          login_alerts?: boolean | null
+          market_alerts?: boolean | null
+          news_updates?: boolean | null
+          two_factor?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bot_alerts?: boolean | null
+          created_at?: string | null
+          email_alerts?: boolean | null
+          id?: string
+          login_alerts?: boolean | null
+          market_alerts?: boolean | null
+          news_updates?: boolean | null
+          two_factor?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
+          backup_key: string | null
           balance: number | null
           created_at: string
           currency: string
           id: string
           name: string
+          password_protected: boolean | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          backup_key?: string | null
           balance?: number | null
           created_at?: string
           currency?: string
           id?: string
           name: string
+          password_protected?: boolean | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          backup_key?: string | null
           balance?: number | null
           created_at?: string
           currency?: string
           id?: string
           name?: string
+          password_protected?: boolean | null
           updated_at?: string
           user_id?: string
         }

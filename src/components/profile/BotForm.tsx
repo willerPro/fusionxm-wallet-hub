@@ -46,6 +46,7 @@ const BotForm = ({ botType, onSuccess, onCancel }: BotFormProps) => {
         name: wallet.name,
         balance: parseFloat(wallet.balance || 0),
         currency: wallet.currency,
+        passwordProtected: wallet.password_protected || false
       }));
       
       setWallets(transformedWallets);

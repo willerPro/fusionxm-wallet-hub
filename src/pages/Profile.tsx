@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,13 +104,28 @@ const Profile = () => {
     }
   };
 
-  if (isLoading && !profile) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const renderActiveContent = () => {
+    if (isLoading && !profile) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+
+    switch (activeTab) {
+      case 'profile':
+        return profile && (
+          <ProfileForm onSubmit={handleUpdateProfile} isLoading={isLoading} initialData={profile} />
+        );
+      case 'settings':
+        return <SettingsSection />;
+      case 'bots':
+        return <BotsSection />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="container mx-auto p-4 pb-20">
@@ -125,17 +139,7 @@ const Profile = () => {
         </Card>
         
         <div className="flex-1">
-          {activeTab === 'profile' && profile && (
-            <ProfileForm onSubmit={handleUpdateProfile} isLoading={isLoading} initialData={profile} />
-          )}
-          
-          {activeTab === 'settings' && (
-            <SettingsSection />
-          )}
-          
-          {activeTab === 'bots' && (
-            <BotsSection />
-          )}
+          {renderActiveContent()}
         </div>
       </div>
     </div>
