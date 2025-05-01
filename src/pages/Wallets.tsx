@@ -9,69 +9,63 @@ import WalletForm from "@/components/wallet/WalletForm";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/components/auth/AuthContext";
 
 const Wallets = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, session } = useAuth();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
     // Check for authentication
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        navigate('/login');
-        return;
-      }
-      setSession(data.session);
-    };
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     
-    checkAuth();
-  }, [navigate]);
+    fetchWallets();
+  }, [user, navigate]);
 
   // Fetch wallets from Supabase
-  useEffect(() => {
-    const fetchWallets = async () => {
-      if (!session) return;
+  const fetchWallets = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      try {
-        const { data, error } = await supabase
-          .from('wallets')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        // Transform the data to match our Wallet type
-        const transformedWallets = data.map((wallet: any) => ({
-          id: wallet.id,
-          name: wallet.name,
-          balance: parseFloat(wallet.balance),
-          currency: wallet.currency,
-        }));
-        
-        setWallets(transformedWallets);
-      } catch (error) {
-        console.error("Error fetching wallets:", error);
-        toast({
-          title: "Error loading wallets",
-          description: "There was a problem loading your wallets.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchWallets();
-  }, [session, toast]);
+      if (error) throw error;
+      
+      // Transform the data to match our Wallet type
+      const transformedWallets = data.map((wallet: any) => ({
+        id: wallet.id,
+        name: wallet.name,
+        balance: parseFloat(wallet.balance || 0),
+        currency: wallet.currency,
+      }));
+      
+      setWallets(transformedWallets);
+    } catch (error) {
+      console.error("Error fetching wallets:", error);
+      toast({
+        title: "Error loading wallets",
+        description: "There was a problem loading your wallets.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCreateWallet = async (walletData: { name: string; currency: string }) => {
-    if (!session) return;
+    if (!user) return;
     
     setIsCreating(true);
     
@@ -82,7 +76,7 @@ const Wallets = () => {
           name: walletData.name, 
           currency: walletData.currency,
           balance: 0,
-          user_id: session.user.id
+          user_id: user.id
         }])
         .select();
       
@@ -92,7 +86,7 @@ const Wallets = () => {
         const newWallet: Wallet = {
           id: data[0].id,
           name: data[0].name,
-          balance: parseFloat(data[0].balance),
+          balance: parseFloat(data[0].balance || 0),
           currency: data[0].currency,
         };
         

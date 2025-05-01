@@ -1,47 +1,42 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Wallet } from "@/components/wallet/WalletCard";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/components/auth/AuthContext";
 
 const Withdraw = () => {
+  const [searchParams] = useSearchParams();
+  const preselectedWalletId = searchParams.get("walletId") || "";
+  
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
-  const { session } = useAuth();
+  const { user } = useAuth();
+  
   const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [selectedWalletId, setSelectedWalletId] = useState<string>("");
-  const [amount, setAmount] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingWallets, setIsLoadingWallets] = useState(true);
-  const [maxAmount, setMaxAmount] = useState(0);
-  
-  // Check authentication and redirect if not logged in
+  const [selectedWalletId, setSelectedWalletId] = useState<string>(preselectedWalletId);
+  const [amount, setAmount] = useState<string>("");
+  const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isFetchingWallets, setIsFetchingWallets] = useState<boolean>(true);
+
+  // Fetch wallets from Supabase
   useEffect(() => {
-    if (!session) {
+    if (!user) {
       navigate('/login');
+      return;
     }
-  }, [session, navigate]);
-  
-  // Get wallets from Supabase
-  useEffect(() => {
+    
     const fetchWallets = async () => {
-      if (!session) return;
-      
       try {
+        setIsFetchingWallets(true);
         const { data, error } = await supabase
           .from('wallets')
           .select('*')
@@ -53,24 +48,19 @@ const Withdraw = () => {
         const transformedWallets = data.map((wallet: any) => ({
           id: wallet.id,
           name: wallet.name,
-          balance: parseFloat(wallet.balance),
+          balance: parseFloat(wallet.balance || 0),
           currency: wallet.currency,
         }));
         
         setWallets(transformedWallets);
         
-        // Check if walletId is provided in URL params
-        const params = new URLSearchParams(location.search);
-        const walletId = params.get("walletId");
-        if (walletId) {
-          setSelectedWalletId(walletId);
-          const selectedWallet = transformedWallets.find(w => w.id === walletId);
-          if (selectedWallet) {
-            setMaxAmount(selectedWallet.balance);
-          }
-        } else if (transformedWallets.length > 0) {
-          setSelectedWalletId(transformedWallets[0].id);
-          setMaxAmount(transformedWallets[0].balance);
+        // If we have wallets but no selection, select the first one
+        if (transformedWallets.length > 0) {
+          const initialWalletId = preselectedWalletId || transformedWallets[0].id;
+          setSelectedWalletId(initialWalletId);
+          
+          const selectedWallet = transformedWallets.find(w => w.id === initialWalletId);
+          setSelectedWallet(selectedWallet || null);
         }
       } catch (error) {
         console.error("Error fetching wallets:", error);
@@ -80,46 +70,52 @@ const Withdraw = () => {
           variant: "destructive",
         });
       } finally {
-        setIsLoadingWallets(false);
+        setIsFetchingWallets(false);
       }
     };
 
     fetchWallets();
-  }, [session, location.search, toast]);
+  }, [user, navigate, preselectedWalletId, toast]);
 
-  // Update max amount when wallet changes
+  // Update selected wallet when selection changes
   useEffect(() => {
-    if (selectedWalletId) {
-      const selectedWallet = wallets.find(wallet => wallet.id === selectedWalletId);
-      if (selectedWallet) {
-        setMaxAmount(selectedWallet.balance);
-      }
-    }
+    const wallet = wallets.find(w => w.id === selectedWalletId);
+    setSelectedWallet(wallet || null);
   }, [selectedWalletId, wallets]);
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!session) return;
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     
-    const withdrawAmount = parseFloat(amount);
-    
-    if (!selectedWalletId || !amount || withdrawAmount <= 0) {
+    if (!selectedWalletId || !selectedWallet) {
       toast({
+        title: "No wallet selected",
+        description: "Please select a wallet for withdrawal.",
         variant: "destructive",
-        title: "Invalid withdrawal",
-        description: "Please select a wallet and enter a valid amount.",
-        duration: 3000,
       });
       return;
     }
     
-    if (withdrawAmount > maxAmount) {
+    const withdrawAmount = parseFloat(amount);
+    
+    if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
       toast({
+        title: "Invalid amount",
+        description: "Please enter a valid positive amount.",
         variant: "destructive",
+      });
+      return;
+    }
+    
+    if (withdrawAmount > selectedWallet.balance) {
+      toast({
         title: "Insufficient funds",
-        description: "You don't have enough funds for this withdrawal.",
-        duration: 3000,
+        description: "Your withdrawal amount exceeds your available balance.",
+        variant: "destructive",
       });
       return;
     }
@@ -127,21 +123,22 @@ const Withdraw = () => {
     setIsLoading(true);
     
     try {
-      // First create a transaction record
+      // Create transaction record
       const { data: transactionData, error: transactionError } = await supabase
         .from('transactions')
-        .insert({
+        .insert([{
           wallet_id: selectedWalletId,
-          user_id: session.user.id,
+          user_id: user.id,
           amount: withdrawAmount,
-          type: 'withdrawal'
-        })
+          type: 'withdrawal',
+          status: 'completed'
+        }])
         .select();
       
       if (transactionError) throw transactionError;
       
-      // Then update the wallet balance
-      const { error: updateError } = await supabase
+      // Update wallet balance using the stored function
+      const { data: updatedWallet, error: updateError } = await supabase
         .rpc('decrement_wallet_balance', {
           wallet_id_param: selectedWalletId,
           amount_param: withdrawAmount
@@ -151,16 +148,16 @@ const Withdraw = () => {
       
       toast({
         title: "Withdrawal successful",
-        description: `${amount} has been withdrawn from your wallet.`,
-        duration: 3000,
+        description: `$${withdrawAmount.toFixed(2)} has been withdrawn from your wallet.`,
       });
       
-      navigate("/wallets");
-    } catch (error: any) {
-      console.error("Withdrawal error:", error);
+      // Navigate back to wallets page
+      navigate('/wallets');
+    } catch (error) {
+      console.error("Error processing withdrawal:", error);
       toast({
         title: "Withdrawal failed",
-        description: error.message || "There was a problem processing your withdrawal.",
+        description: "There was an error processing your withdrawal. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -168,7 +165,7 @@ const Withdraw = () => {
     }
   };
 
-  if (isLoadingWallets) {
+  if (isFetchingWallets) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -177,89 +174,97 @@ const Withdraw = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-xl">
-      <Button 
-        variant="ghost" 
-        className="mb-6"
-        onClick={() => navigate("/wallets")}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Wallets
-      </Button>
-      
+    <div className="container mx-auto p-4 max-w-md">
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Withdraw Funds</CardTitle>
+          <CardTitle>Withdraw Funds</CardTitle>
+          <CardDescription>
+            Withdraw money from your investment wallet
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleWithdraw} className="space-y-4">
+        <form onSubmit={handleWithdraw}>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="wallet" className="text-sm font-medium">
-                Select Wallet
-              </label>
-              <Select 
-                value={selectedWalletId} 
-                onValueChange={(value) => {
-                  setSelectedWalletId(value);
-                  const selectedWallet = wallets.find(wallet => wallet.id === value);
-                  if (selectedWallet) {
-                    setMaxAmount(selectedWallet.balance);
-                  }
-                }}
-                disabled={wallets.length === 0}
-              >
-                <SelectTrigger id="wallet">
-                  <SelectValue placeholder="Select wallet" />
-                </SelectTrigger>
-                <SelectContent>
-                  {wallets.map((wallet) => (
-                    <SelectItem key={wallet.id} value={wallet.id}>
-                      {wallet.name} ({new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: wallet.currency
-                      }).format(wallet.balance)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedWalletId && (
-                <p className="text-xs text-gray-500">
-                  Available balance: {new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: wallets.find(w => w.id === selectedWalletId)?.currency || 'USD'
-                  }).format(maxAmount)}
-                </p>
+              <Label htmlFor="wallet">Select Wallet</Label>
+              {wallets.length > 0 ? (
+                <Select 
+                  value={selectedWalletId} 
+                  onValueChange={setSelectedWalletId}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="wallet">
+                    <SelectValue placeholder="Select a wallet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wallets.map((wallet) => (
+                      <SelectItem key={wallet.id} value={wallet.id}>
+                        {wallet.name} - {new Intl.NumberFormat('en-US', { style: 'currency', currency: wallet.currency }).format(wallet.balance)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500 mb-2">You don't have any wallets yet</p>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => navigate('/wallets')}
+                  >
+                    Create a Wallet
+                  </Button>
+                </div>
               )}
             </div>
-            <div className="space-y-2">
-              <label htmlFor="amount" className="text-sm font-medium">
-                Amount
-              </label>
-              <Input
-                id="amount"
-                type="number"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                max={maxAmount}
-                required
-              />
-            </div>
+            
+            {selectedWallet && (
+              <>
+                <div className="p-3 bg-secondary/50 rounded-lg">
+                  <p className="text-sm font-medium">Available Balance</p>
+                  <p className="text-lg font-semibold">
+                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedWallet.currency }).format(selectedWallet.balance)}
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Withdrawal Amount</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
+                    <Input
+                      id="amount"
+                      type="number"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="pl-8"
+                      min="0"
+                      max={selectedWallet.balance.toString()}
+                      step="0.01"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+          <CardFooter>
             <Button
               type="submit"
               className="w-full bg-primary hover:bg-primary/90"
-              disabled={isLoading || parseFloat(amount || "0") > maxAmount}
+              disabled={!selectedWalletId || !amount || isLoading || (selectedWallet && parseFloat(amount) > selectedWallet.balance)}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
                 </>
               ) : (
-                "Withdraw Funds"
+                'Withdraw Funds'
               )}
             </Button>
-          </form>
-        </CardContent>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );

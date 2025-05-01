@@ -4,80 +4,124 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import InvestorCard, { Investor } from "@/components/investor/InvestorCard";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import InvestorForm from "@/components/investor/InvestorForm";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthContext";
 
 const Investors = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [investors, setInvestors] = useState<Investor[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Mock data - in a real app, this would come from an API
   useEffect(() => {
-    // Simulate loading investors from localStorage
-    const savedInvestors = localStorage.getItem("investors");
-    if (savedInvestors) {
-      try {
-        setInvestors(JSON.parse(savedInvestors));
-      } catch (error) {
-        console.error("Failed to parse investors", error);
-      }
-    } else {
-      // Set initial demo investors if none exist
-      const initialInvestors: Investor[] = [
-        {
-          id: "1",
-          fullName: "John Smith",
-          email: "john.smith@example.com",
-          phone: "+1 (555) 123-4567",
-          investorType: "individual",
-        },
-        {
-          id: "2",
-          fullName: "Acme Corporation",
-          email: "info@acmecorp.com",
-          phone: "+1 (555) 987-6543",
-          investorType: "corporate",
-        },
-      ];
-      setInvestors(initialInvestors);
-      localStorage.setItem("investors", JSON.stringify(initialInvestors));
+    if (!user) {
+      navigate('/login');
+      return;
     }
-  }, []);
 
-  const handleAddInvestor = (investorData: {
+    fetchInvestors();
+  }, [user, navigate]);
+  
+  const fetchInvestors = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('investors')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Transform the data to match our Investor type
+      const transformedInvestors = data.map((investor: any) => ({
+        id: investor.id,
+        fullName: `${investor.first_name} ${investor.last_name}`,
+        email: investor.email || '',
+        phone: investor.phone || '',
+        investorType: 'individual', // We'll need to add this field to the database if we want to use this
+      }));
+      
+      setInvestors(transformedInvestors);
+    } catch (error) {
+      console.error("Error fetching investors:", error);
+      toast({
+        title: "Error loading investors",
+        description: "There was a problem loading your investors.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddInvestor = async (investorData: {
     fullName: string;
     email: string;
     phone: string;
     investorType: string;
   }) => {
-    setIsLoading(true);
+    if (!user) return;
     
-    // Simulate API call to create investor
-    setTimeout(() => {
-      const newInvestor: Investor = {
-        id: Date.now().toString(),
-        ...investorData,
-      };
+    setIsCreating(true);
+    
+    try {
+      // Split full name into first and last name
+      const nameParts = investorData.fullName.split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ') || ''; // Default to empty string if no last name
       
-      const updatedInvestors = [...investors, newInvestor];
-      setInvestors(updatedInvestors);
-      localStorage.setItem("investors", JSON.stringify(updatedInvestors));
+      const { data, error } = await supabase
+        .from('investors')
+        .insert([{
+          user_id: user.id,
+          first_name: firstName,
+          last_name: lastName,
+          email: investorData.email,
+          phone: investorData.phone,
+        }])
+        .select();
       
-      toast({
-        title: "Investor added",
-        description: `${investorData.fullName} has been added successfully.`,
-        duration: 3000,
-      });
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const newInvestor: Investor = {
+          id: data[0].id,
+          fullName: `${data[0].first_name} ${data[0].last_name}`,
+          email: data[0].email || '',
+          phone: data[0].phone || '',
+          investorType: investorData.investorType,
+        };
+        
+        setInvestors([newInvestor, ...investors]);
+        
+        toast({
+          title: "Investor added",
+          description: `${investorData.fullName} has been added successfully.`,
+          duration: 3000,
+        });
+      }
       
       setIsDialogOpen(false);
-      setIsLoading(false);
-    }, 1000);
+    } catch (error) {
+      console.error("Error creating investor:", error);
+      toast({
+        title: "Error adding investor",
+        description: "There was a problem adding the investor.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const filteredInvestors = investors.filter(
@@ -85,6 +129,14 @@ const Investors = () => {
       investor.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       investor.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 max-w-xl">
@@ -143,7 +195,7 @@ const Investors = () => {
               Enter the investor's details below
             </DialogDescription>
           </DialogHeader>
-          <InvestorForm onSubmit={handleAddInvestor} isLoading={isLoading} />
+          <InvestorForm onSubmit={handleAddInvestor} isLoading={isCreating} />
         </DialogContent>
       </Dialog>
     </div>

@@ -4,57 +4,75 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import PackageCard, { InvestmentPackage } from "@/components/package/PackageCard";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PackageForm from "@/components/package/PackageForm";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthContext";
 
 const Packages = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [packages, setPackages] = useState<InvestmentPackage[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Mock data - in a real app, this would come from an API
   useEffect(() => {
-    // Simulate loading packages from localStorage
-    const savedPackages = localStorage.getItem("investmentPackages");
-    if (savedPackages) {
-      try {
-        setPackages(JSON.parse(savedPackages));
-      } catch (error) {
-        console.error("Failed to parse investment packages", error);
-      }
-    } else {
-      // Set initial demo packages if none exist
-      const initialPackages: InvestmentPackage[] = [
-        {
-          id: "1",
-          name: "Growth Portfolio",
-          description: "High-growth tech stocks with moderate risk profile",
-          minInvestment: 5000,
-          expectedReturn: 12,
-          duration: "12 months",
-          riskLevel: "medium",
-        },
-        {
-          id: "2",
-          name: "Stable Income",
-          description: "Low-risk bonds and dividend stocks for regular income",
-          minInvestment: 10000,
-          expectedReturn: 6,
-          duration: "24 months",
-          riskLevel: "low",
-        },
-      ];
-      setPackages(initialPackages);
-      localStorage.setItem("investmentPackages", JSON.stringify(initialPackages));
+    if (!user) {
+      navigate('/login');
+      return;
     }
-  }, []);
 
-  const handleCreatePackage = (packageData: {
+    fetchPackages();
+  }, [user, navigate]);
+  
+  const fetchPackages = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('packages')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Transform the data to match our InvestmentPackage type
+      const transformedPackages = data.map((pkg: any) => ({
+        id: pkg.id,
+        name: pkg.name,
+        description: pkg.description || '',
+        minInvestment: parseFloat(pkg.min_amount),
+        expectedReturn: parseFloat(pkg.interest_rate),
+        duration: `${pkg.duration_days} days`,
+        riskLevel: getRiskLevel(parseFloat(pkg.interest_rate)),
+      }));
+      
+      setPackages(transformedPackages);
+    } catch (error) {
+      console.error("Error fetching packages:", error);
+      toast({
+        title: "Error loading packages",
+        description: "There was a problem loading your investment packages.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getRiskLevel = (interestRate: number): 'low' | 'medium' | 'high' => {
+    if (interestRate < 5) return 'low';
+    if (interestRate < 10) return 'medium';
+    return 'high';
+  };
+
+  const handleCreatePackage = async (packageData: {
     name: string;
     description: string;
     minInvestment: number;
@@ -62,28 +80,59 @@ const Packages = () => {
     duration: string;
     riskLevel: "low" | "medium" | "high";
   }) => {
-    setIsLoading(true);
+    if (!user) return;
     
-    // Simulate API call to create package
-    setTimeout(() => {
-      const newPackage: InvestmentPackage = {
-        id: Date.now().toString(),
-        ...packageData,
-      };
+    setIsCreating(true);
+    
+    try {
+      // Extract duration in days from the string (e.g., "30 days" -> 30)
+      const durationDays = parseInt(packageData.duration.split(' ')[0]);
       
-      const updatedPackages = [...packages, newPackage];
-      setPackages(updatedPackages);
-      localStorage.setItem("investmentPackages", JSON.stringify(updatedPackages));
+      const { data, error } = await supabase
+        .from('packages')
+        .insert([{
+          user_id: user.id,
+          name: packageData.name,
+          description: packageData.description,
+          min_amount: packageData.minInvestment,
+          interest_rate: packageData.expectedReturn,
+          duration_days: durationDays
+        }])
+        .select();
       
-      toast({
-        title: "Package created",
-        description: `${packageData.name} has been created successfully.`,
-        duration: 3000,
-      });
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const newPackage: InvestmentPackage = {
+          id: data[0].id,
+          name: data[0].name,
+          description: data[0].description || '',
+          minInvestment: parseFloat(data[0].min_amount),
+          expectedReturn: parseFloat(data[0].interest_rate),
+          duration: `${data[0].duration_days} days`,
+          riskLevel: packageData.riskLevel,
+        };
+        
+        setPackages([newPackage, ...packages]);
+        
+        toast({
+          title: "Package created",
+          description: `${packageData.name} has been created successfully.`,
+          duration: 3000,
+        });
+      }
       
       setIsDialogOpen(false);
-      setIsLoading(false);
-    }, 1000);
+    } catch (error) {
+      console.error("Error creating package:", error);
+      toast({
+        title: "Error creating package",
+        description: "There was a problem creating your investment package.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const filteredPackages = packages.filter(
@@ -91,6 +140,14 @@ const Packages = () => {
       pkg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pkg.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 max-w-xl">
@@ -149,7 +206,7 @@ const Packages = () => {
               Define the details for your new investment package
             </DialogDescription>
           </DialogHeader>
-          <PackageForm onSubmit={handleCreatePackage} isLoading={isLoading} />
+          <PackageForm onSubmit={handleCreatePackage} isLoading={isCreating} />
         </DialogContent>
       </Dialog>
     </div>
