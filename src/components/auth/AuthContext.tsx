@@ -7,7 +7,7 @@ type AuthContextType = {
   session: Session | null;
   user: User | null;
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: any | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: any | null, userCreated?: boolean }>;
   signOut: () => Promise<void>;
   loading: boolean;
 };
@@ -83,15 +83,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     try {
+      // First attempt to create the user
       const { data, error } = await supabase.auth.signUp({ email, password });
       console.log("Sign up result:", error ? "Error" : "Success", data?.user?.email);
       
-      if (!error && data?.user) {
-        // Don't store user in localStorage yet as they need to confirm their email
-        console.log("User created, waiting for email confirmation");
+      if (error) {
+        // If we got a database error but the user might have been created, inform the user
+        if (error.message && error.message.includes("Database error saving new user")) {
+          console.log("Database error occurred, but user may have been created. Attempting to login...");
+          
+          // Try to log in with the credentials to see if the user was actually created
+          const { error: loginError } = await supabase.auth.signInWithPassword({ 
+            email, 
+            password 
+          });
+          
+          if (!loginError) {
+            // User was created and can log in, so this was just an error with the user_settings table
+            return { error: null, userCreated: true };
+          }
+        }
+        return { error };
       }
       
-      return { error };
+      if (data?.user) {
+        // Don't store user in localStorage yet as they need to confirm their email
+        console.log("User created, waiting for email confirmation");
+        return { error: null, userCreated: true };
+      }
+      
+      return { error: null };
     } catch (error) {
       console.error("Sign up exception:", error);
       return { error };

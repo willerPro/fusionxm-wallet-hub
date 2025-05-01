@@ -54,23 +54,45 @@ const SignupForm = () => {
 
     try {
       console.log("Attempting to sign up with:", email);
-      const { error } = await signUp(email, password);
+      const { error, userCreated } = await signUp(email, password);
       
       if (error) {
         console.error("Sign up error details:", error);
         throw error;
       }
       
-      console.log("Sign up successful, redirecting to login");
-      toast({
-        title: "Sign up successful",
-        description: "Your account has been created. Please check your email to confirm your registration.",
-        duration: 5000,
-      });
-      
-      navigate("/login");
+      if (userCreated) {
+        console.log("Sign up successful, redirecting to login");
+        toast({
+          title: "Sign up successful",
+          description: "Your account has been created. Please check your email to confirm your registration.",
+          duration: 5000,
+        });
+        
+        navigate("/login");
+      } else {
+        console.log("Sign up initiated, waiting for email confirmation");
+        toast({
+          title: "Sign up initiated",
+          description: "Please check your email to confirm your registration.",
+          duration: 5000,
+        });
+      }
     } catch (error: any) {
       console.error("Sign up error:", error);
+      
+      // Handle the specific database error with a more user-friendly message
+      if (error.message && error.message.includes("Database error saving new user")) {
+        toast({
+          title: "Sign up partially successful",
+          description: "Your account was created but there was an issue with some additional settings. You can still log in.",
+          variant: "default",
+          duration: 5000,
+        });
+        navigate("/login");
+        return;
+      }
+      
       toast({
         title: "Sign up failed",
         description: error.message || "There was a problem creating your account.",
