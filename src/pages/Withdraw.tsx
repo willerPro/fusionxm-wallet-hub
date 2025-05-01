@@ -13,44 +13,79 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthContext";
 
 const Withdraw = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { session } = useAuth();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [selectedWalletId, setSelectedWalletId] = useState<string>("");
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingWallets, setIsLoadingWallets] = useState(true);
   const [maxAmount, setMaxAmount] = useState(0);
   
-  // Get wallets from localStorage
+  // Check authentication and redirect if not logged in
   useEffect(() => {
-    const savedWallets = localStorage.getItem("wallets");
-    if (savedWallets) {
+    if (!session) {
+      navigate('/login');
+    }
+  }, [session, navigate]);
+  
+  // Get wallets from Supabase
+  useEffect(() => {
+    const fetchWallets = async () => {
+      if (!session) return;
+      
       try {
-        const parsedWallets = JSON.parse(savedWallets);
-        setWallets(parsedWallets);
+        const { data, error } = await supabase
+          .from('wallets')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        // Transform the data to match our Wallet type
+        const transformedWallets = data.map((wallet: any) => ({
+          id: wallet.id,
+          name: wallet.name,
+          balance: parseFloat(wallet.balance),
+          currency: wallet.currency,
+        }));
+        
+        setWallets(transformedWallets);
         
         // Check if walletId is provided in URL params
         const params = new URLSearchParams(location.search);
         const walletId = params.get("walletId");
         if (walletId) {
           setSelectedWalletId(walletId);
-          const selectedWallet = parsedWallets.find((w: Wallet) => w.id === walletId);
+          const selectedWallet = transformedWallets.find(w => w.id === walletId);
           if (selectedWallet) {
             setMaxAmount(selectedWallet.balance);
           }
-        } else if (parsedWallets.length > 0) {
-          setSelectedWalletId(parsedWallets[0].id);
-          setMaxAmount(parsedWallets[0].balance);
+        } else if (transformedWallets.length > 0) {
+          setSelectedWalletId(transformedWallets[0].id);
+          setMaxAmount(transformedWallets[0].balance);
         }
       } catch (error) {
-        console.error("Failed to parse wallets", error);
+        console.error("Error fetching wallets:", error);
+        toast({
+          title: "Error loading wallets",
+          description: "There was a problem loading your wallets.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingWallets(false);
       }
-    }
-  }, [location.search]);
+    };
+
+    fetchWallets();
+  }, [session, location.search, toast]);
 
   // Update max amount when wallet changes
   useEffect(() => {
@@ -62,8 +97,10 @@ const Withdraw = () => {
     }
   }, [selectedWalletId, wallets]);
 
-  const handleWithdraw = (e: React.FormEvent) => {
+  const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!session) return;
     
     const withdrawAmount = parseFloat(amount);
     
@@ -89,31 +126,28 @@ const Withdraw = () => {
     
     setIsLoading(true);
     
-    // Simulate API call to process withdrawal
-    setTimeout(() => {
-      const updatedWallets = wallets.map((wallet) => {
-        if (wallet.id === selectedWalletId) {
-          return {
-            ...wallet,
-            balance: wallet.balance - withdrawAmount,
-          };
-        }
-        return wallet;
-      });
+    try {
+      // First create a transaction record
+      const { data: transactionData, error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          wallet_id: selectedWalletId,
+          user_id: session.user.id,
+          amount: withdrawAmount,
+          type: 'withdrawal'
+        })
+        .select();
       
-      localStorage.setItem("wallets", JSON.stringify(updatedWallets));
+      if (transactionError) throw transactionError;
       
-      // Add activity to history
-      const selectedWallet = wallets.find(w => w.id === selectedWalletId);
-      const activities = JSON.parse(localStorage.getItem("activities") || "[]");
-      activities.unshift({
-        id: Date.now().toString(),
-        type: "withdrawal",
-        amount: withdrawAmount,
-        description: `Withdrawal from ${selectedWallet?.name}`,
-        date: new Date(),
-      });
-      localStorage.setItem("activities", JSON.stringify(activities));
+      // Then update the wallet balance
+      const { error: updateError } = await supabase
+        .rpc('decrement_wallet_balance', {
+          wallet_id_param: selectedWalletId,
+          amount_param: withdrawAmount
+        });
+      
+      if (updateError) throw updateError;
       
       toast({
         title: "Withdrawal successful",
@@ -121,10 +155,26 @@ const Withdraw = () => {
         duration: 3000,
       });
       
-      setIsLoading(false);
       navigate("/wallets");
-    }, 1000);
+    } catch (error: any) {
+      console.error("Withdrawal error:", error);
+      toast({
+        title: "Withdrawal failed",
+        description: error.message || "There was a problem processing your withdrawal.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (isLoadingWallets) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 max-w-xl">
@@ -200,7 +250,13 @@ const Withdraw = () => {
               className="w-full bg-primary hover:bg-primary/90"
               disabled={isLoading || parseFloat(amount || "0") > maxAmount}
             >
-              {isLoading ? "Processing..." : "Withdraw Funds"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
+                </>
+              ) : (
+                "Withdraw Funds"
+              )}
             </Button>
           </form>
         </CardContent>

@@ -7,71 +7,124 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Plus } from "lucide-react";
 import WalletForm from "@/components/wallet/WalletForm";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 const Wallets = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [session, setSession] = useState<any>(null);
 
-  // Mock data - in a real app, this would come from an API
   useEffect(() => {
-    // Simulate loading wallets from localStorage
-    const savedWallets = localStorage.getItem("wallets");
-    if (savedWallets) {
-      try {
-        setWallets(JSON.parse(savedWallets));
-      } catch (error) {
-        console.error("Failed to parse wallets", error);
+    // Check for authentication
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        navigate('/login');
+        return;
       }
-    } else {
-      // Set initial demo wallets if none exist
-      const initialWallets: Wallet[] = [
-        {
-          id: "1",
-          name: "Investment Wallet",
-          balance: 10000,
-          currency: "USD",
-        },
-        {
-          id: "2",
-          name: "Savings Wallet",
-          balance: 5000,
-          currency: "USD",
-        },
-      ];
-      setWallets(initialWallets);
-      localStorage.setItem("wallets", JSON.stringify(initialWallets));
-    }
-  }, []);
-
-  const handleCreateWallet = (walletData: { name: string; currency: string }) => {
-    setIsLoading(true);
+      setSession(data.session);
+    };
     
-    // Simulate API call to create wallet
-    setTimeout(() => {
-      const newWallet: Wallet = {
-        id: Date.now().toString(),
-        name: walletData.name,
-        balance: 0,
-        currency: walletData.currency,
-      };
+    checkAuth();
+  }, [navigate]);
+
+  // Fetch wallets from Supabase
+  useEffect(() => {
+    const fetchWallets = async () => {
+      if (!session) return;
       
-      const updatedWallets = [...wallets, newWallet];
-      setWallets(updatedWallets);
-      localStorage.setItem("wallets", JSON.stringify(updatedWallets));
+      try {
+        const { data, error } = await supabase
+          .from('wallets')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        // Transform the data to match our Wallet type
+        const transformedWallets = data.map((wallet: any) => ({
+          id: wallet.id,
+          name: wallet.name,
+          balance: parseFloat(wallet.balance),
+          currency: wallet.currency,
+        }));
+        
+        setWallets(transformedWallets);
+      } catch (error) {
+        console.error("Error fetching wallets:", error);
+        toast({
+          title: "Error loading wallets",
+          description: "There was a problem loading your wallets.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchWallets();
+  }, [session, toast]);
+
+  const handleCreateWallet = async (walletData: { name: string; currency: string }) => {
+    if (!session) return;
+    
+    setIsCreating(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('wallets')
+        .insert([{ 
+          name: walletData.name, 
+          currency: walletData.currency,
+          balance: 0,
+          user_id: session.user.id
+        }])
+        .select();
       
-      toast({
-        title: "Wallet created",
-        description: `${walletData.name} has been created successfully.`,
-        duration: 3000,
-      });
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const newWallet: Wallet = {
+          id: data[0].id,
+          name: data[0].name,
+          balance: parseFloat(data[0].balance),
+          currency: data[0].currency,
+        };
+        
+        setWallets([newWallet, ...wallets]);
+        
+        toast({
+          title: "Wallet created",
+          description: `${walletData.name} has been created successfully.`,
+          duration: 3000,
+        });
+      }
       
       setIsDialogOpen(false);
-      setIsLoading(false);
-    }, 1000);
+    } catch (error) {
+      console.error("Error creating wallet:", error);
+      toast({
+        title: "Error creating wallet",
+        description: "There was a problem creating your wallet.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 max-w-xl">
@@ -111,7 +164,7 @@ const Wallets = () => {
               Add a new wallet to manage your investments
             </DialogDescription>
           </DialogHeader>
-          <WalletForm onSubmit={handleCreateWallet} isLoading={isLoading} />
+          <WalletForm onSubmit={handleCreateWallet} isLoading={isCreating} />
         </DialogContent>
       </Dialog>
     </div>

@@ -13,43 +13,78 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthContext";
 
 const Deposit = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { session } = useAuth();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [selectedWalletId, setSelectedWalletId] = useState<string>("");
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingWallets, setIsLoadingWallets] = useState(true);
   
-  // Get wallets from localStorage
+  // Check authentication and redirect if not logged in
   useEffect(() => {
-    const savedWallets = localStorage.getItem("wallets");
-    if (savedWallets) {
+    if (!session) {
+      navigate('/login');
+    }
+  }, [session, navigate]);
+  
+  // Get wallets from Supabase
+  useEffect(() => {
+    const fetchWallets = async () => {
+      if (!session) return;
+      
       try {
-        const parsedWallets = JSON.parse(savedWallets);
-        setWallets(parsedWallets);
+        const { data, error } = await supabase
+          .from('wallets')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        // Transform the data to match our Wallet type
+        const transformedWallets = data.map((wallet: any) => ({
+          id: wallet.id,
+          name: wallet.name,
+          balance: parseFloat(wallet.balance),
+          currency: wallet.currency,
+        }));
+        
+        setWallets(transformedWallets);
         
         // Check if walletId is provided in URL params
         const params = new URLSearchParams(location.search);
         const walletId = params.get("walletId");
         if (walletId) {
           setSelectedWalletId(walletId);
-        } else if (parsedWallets.length > 0) {
-          setSelectedWalletId(parsedWallets[0].id);
+        } else if (transformedWallets.length > 0) {
+          setSelectedWalletId(transformedWallets[0].id);
         }
       } catch (error) {
-        console.error("Failed to parse wallets", error);
+        console.error("Error fetching wallets:", error);
+        toast({
+          title: "Error loading wallets",
+          description: "There was a problem loading your wallets.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingWallets(false);
       }
-    }
-  }, [location.search]);
+    };
 
-  const handleDeposit = (e: React.FormEvent) => {
+    fetchWallets();
+  }, [session, location.search, toast]);
+
+  const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedWalletId || !amount || parseFloat(amount) <= 0) {
+    if (!session || !selectedWalletId || !amount || parseFloat(amount) <= 0) {
       toast({
         variant: "destructive",
         title: "Invalid deposit",
@@ -61,31 +96,31 @@ const Deposit = () => {
     
     setIsLoading(true);
     
-    // Simulate API call to process deposit
-    setTimeout(() => {
-      const updatedWallets = wallets.map((wallet) => {
-        if (wallet.id === selectedWalletId) {
-          return {
-            ...wallet,
-            balance: wallet.balance + parseFloat(amount),
-          };
-        }
-        return wallet;
-      });
+    // Use transaction to ensure both operations succeed or fail together
+    try {
+      // First create a transaction record
+      const depositAmount = parseFloat(amount);
       
-      localStorage.setItem("wallets", JSON.stringify(updatedWallets));
+      const { data: transactionData, error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          wallet_id: selectedWalletId,
+          user_id: session.user.id,
+          amount: depositAmount,
+          type: 'deposit'
+        })
+        .select();
       
-      // Add activity to history
-      const selectedWallet = wallets.find(w => w.id === selectedWalletId);
-      const activities = JSON.parse(localStorage.getItem("activities") || "[]");
-      activities.unshift({
-        id: Date.now().toString(),
-        type: "deposit",
-        amount: parseFloat(amount),
-        description: `Deposit to ${selectedWallet?.name}`,
-        date: new Date(),
-      });
-      localStorage.setItem("activities", JSON.stringify(activities));
+      if (transactionError) throw transactionError;
+      
+      // Then update the wallet balance
+      const { error: updateError } = await supabase
+        .rpc('increment_wallet_balance', {
+          wallet_id_param: selectedWalletId,
+          amount_param: depositAmount
+        });
+      
+      if (updateError) throw updateError;
       
       toast({
         title: "Deposit successful",
@@ -93,10 +128,26 @@ const Deposit = () => {
         duration: 3000,
       });
       
-      setIsLoading(false);
       navigate("/wallets");
-    }, 1000);
+    } catch (error: any) {
+      console.error("Deposit error:", error);
+      toast({
+        title: "Deposit failed",
+        description: error.message || "There was a problem processing your deposit.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (isLoadingWallets) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 max-w-xl">
@@ -154,7 +205,13 @@ const Deposit = () => {
               className="w-full bg-primary hover:bg-primary/90"
               disabled={isLoading}
             >
-              {isLoading ? "Processing..." : "Deposit Funds"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
+                </>
+              ) : (
+                "Deposit Funds"
+              )}
             </Button>
           </form>
         </CardContent>

@@ -1,98 +1,110 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
-import { Mail, Lock } from "lucide-react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useNavigate, Link } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "./AuthContext";
+import { useToast } from "../ui/use-toast";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Mock login - would connect to backend in real implementation
-    setTimeout(() => {
-      if (email && password) {
-        localStorage.setItem("user", JSON.stringify({ email }));
-        toast({
-          title: "Login successful",
-          description: "Welcome to FusionXM",
-          duration: 3000,
-        });
-        navigate("/dashboard");
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: "Please check your credentials and try again",
-          duration: 3000,
-        });
-      }
+
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Login successful",
+        description: "You have been successfully logged in.",
+        duration: 3000,
+      });
+      
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-lg">
+    <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold text-primary">Welcome Back</CardTitle>
-        <CardDescription>Enter your credentials to access your account</CardDescription>
+        <CardTitle className="text-center">Login to Your Account</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
-              <Mail className="h-5 w-5 text-gray-400" />
-              <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                required
-              />
-            </div>
+            <label htmlFor="email" className="text-sm font-medium">
+              Email Address
+            </label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
           <div className="space-y-2">
-            <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
-              <Lock className="h-5 w-5 text-gray-400" />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                required
-              />
+            <div className="flex justify-between items-center">
+              <label htmlFor="password" className="text-sm font-medium">
+                Password
+              </label>
+              <a href="#" className="text-xs text-primary hover:underline">
+                Forgot Password?
+              </a>
             </div>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </div>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full bg-primary hover:bg-primary/90"
             disabled={isLoading}
           >
-            {isLoading ? "Signing in..." : "Sign In"}
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing In...
+              </>
+            ) : (
+              "Sign In"
+            )}
           </Button>
         </form>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-2">
-        <div className="text-sm text-center">
-          Don't have an account? 
-          <button 
-            className="ml-1 text-primary hover:underline"
-            onClick={() => navigate("/signup")}
-          >
+      <CardFooter className="flex justify-center">
+        <p className="text-sm text-gray-600">
+          Don't have an account?{" "}
+          <Link to="/signup" className="text-primary hover:underline">
             Sign up
-          </button>
-        </div>
+          </Link>
+        </p>
       </CardFooter>
     </Card>
   );
