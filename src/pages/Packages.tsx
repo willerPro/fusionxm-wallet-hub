@@ -1,35 +1,43 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import PackageCard, { InvestmentPackage } from "@/components/package/PackageCard";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Loader2 } from "lucide-react";
+import PackageCard from "@/components/package/PackageCard";
 import PackageForm from "@/components/package/PackageForm";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
+import { useNavigate } from "react-router-dom";
+
+type InvestmentPackage = {
+  id: string;
+  name: string;
+  description?: string;
+  minAmount: number;
+  maxAmount?: number;
+  interestRate: number;
+  durationDays: number;
+};
 
 const Packages = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [packages, setPackages] = useState<InvestmentPackage[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
     }
-
+    
     fetchPackages();
   }, [user, navigate]);
-  
+
   const fetchPackages = async () => {
     if (!user) return;
     
@@ -47,10 +55,10 @@ const Packages = () => {
         id: pkg.id,
         name: pkg.name,
         description: pkg.description || '',
-        minInvestment: parseFloat(pkg.min_amount),
-        expectedReturn: parseFloat(pkg.interest_rate),
-        duration: `${pkg.duration_days} days`,
-        riskLevel: getRiskLevel(parseFloat(pkg.interest_rate)),
+        minAmount: Number(pkg.min_amount),
+        maxAmount: pkg.max_amount ? Number(pkg.max_amount) : undefined,
+        interestRate: Number(pkg.interest_rate),
+        durationDays: pkg.duration_days,
       }));
       
       setPackages(transformedPackages);
@@ -66,37 +74,29 @@ const Packages = () => {
     }
   };
 
-  const getRiskLevel = (interestRate: number): 'low' | 'medium' | 'high' => {
-    if (interestRate < 5) return 'low';
-    if (interestRate < 10) return 'medium';
-    return 'high';
-  };
-
   const handleCreatePackage = async (packageData: {
     name: string;
     description: string;
-    minInvestment: number;
-    expectedReturn: number;
-    duration: string;
-    riskLevel: "low" | "medium" | "high";
+    minAmount: number;
+    maxAmount?: number;
+    interestRate: number;
+    durationDays: number;
   }) => {
     if (!user) return;
     
     setIsCreating(true);
     
     try {
-      // Extract duration in days from the string (e.g., "30 days" -> 30)
-      const durationDays = parseInt(packageData.duration.split(' ')[0]);
-      
       const { data, error } = await supabase
         .from('packages')
         .insert([{
-          user_id: user.id,
           name: packageData.name,
-          description: packageData.description,
-          min_amount: packageData.minInvestment,
-          interest_rate: packageData.expectedReturn,
-          duration_days: durationDays
+          description: packageData.description || null,
+          min_amount: packageData.minAmount,
+          max_amount: packageData.maxAmount || null,
+          interest_rate: packageData.interestRate,
+          duration_days: packageData.durationDays,
+          user_id: user.id
         }])
         .select();
       
@@ -107,10 +107,10 @@ const Packages = () => {
           id: data[0].id,
           name: data[0].name,
           description: data[0].description || '',
-          minInvestment: parseFloat(data[0].min_amount),
-          expectedReturn: parseFloat(data[0].interest_rate),
-          duration: `${data[0].duration_days} days`,
-          riskLevel: packageData.riskLevel,
+          minAmount: Number(data[0].min_amount),
+          maxAmount: data[0].max_amount ? Number(data[0].max_amount) : undefined,
+          interestRate: Number(data[0].interest_rate),
+          durationDays: data[0].duration_days,
         };
         
         setPackages([newPackage, ...packages]);
@@ -135,12 +135,6 @@ const Packages = () => {
     }
   };
 
-  const filteredPackages = packages.filter(
-    (pkg) =>
-      pkg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pkg.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -150,61 +144,48 @@ const Packages = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-xl">
+    <div className="container mx-auto p-4 pb-20 max-w-6xl">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Investment Packages</h2>
         <Button 
-          className="bg-primary hover:bg-primary/90"
           onClick={() => setIsDialogOpen(true)}
+          className="bg-primary hover:bg-primary/90"
         >
           <Plus className="mr-2 h-4 w-4" /> Create Package
         </Button>
       </div>
 
-      <div className="mb-4 relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
-        </div>
-        <Input
-          type="search"
-          placeholder="Search packages..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      <div className="space-y-4">
-        {filteredPackages.length > 0 ? (
-          filteredPackages.map((pkg) => (
-            <PackageCard key={pkg.id} investmentPackage={pkg} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {packages.length > 0 ? (
+          packages.map((pkg) => (
+            <PackageCard
+              key={pkg.id}
+              name={pkg.name}
+              description={pkg.description}
+              minAmount={pkg.minAmount}
+              maxAmount={pkg.maxAmount}
+              interestRate={pkg.interestRate}
+              durationDays={pkg.durationDays}
+            />
           ))
         ) : (
-          <div className="text-center py-10">
-            {searchQuery ? (
-              <p className="text-gray-500">No packages found matching "{searchQuery}"</p>
-            ) : (
-              <>
-                <p className="text-gray-500 mb-4">You haven't created any investment packages yet</p>
-                <Button 
-                  onClick={() => setIsDialogOpen(true)}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  Create Your First Package
-                </Button>
-              </>
-            )}
+          <div className="col-span-3 text-center py-16">
+            <h3 className="text-xl font-semibold text-gray-400 mb-2">No Packages Available</h3>
+            <p className="text-gray-500 mb-6">Create your first investment package to get started</p>
+            <Button 
+              onClick={() => setIsDialogOpen(true)}
+              className="bg-primary hover:bg-primary/90"
+            >
+              Create Package
+            </Button>
           </div>
         )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Create Investment Package</DialogTitle>
-            <DialogDescription>
-              Define the details for your new investment package
-            </DialogDescription>
           </DialogHeader>
           <PackageForm onSubmit={handleCreatePackage} isLoading={isCreating} />
         </DialogContent>

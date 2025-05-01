@@ -47,7 +47,7 @@ const Wallets = () => {
       const transformedWallets = data.map((wallet: any) => ({
         id: wallet.id,
         name: wallet.name,
-        balance: parseFloat(wallet.balance || 0),
+        balance: Number(wallet.balance || 0),
         currency: wallet.currency,
       }));
       
@@ -86,7 +86,7 @@ const Wallets = () => {
         const newWallet: Wallet = {
           id: data[0].id,
           name: data[0].name,
-          balance: parseFloat(data[0].balance || 0),
+          balance: Number(data[0].balance || 0),
           currency: data[0].currency,
         };
         

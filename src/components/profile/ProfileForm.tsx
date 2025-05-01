@@ -24,9 +24,10 @@ export type UserProfile = {
 type ProfileFormProps = {
   onSubmit: (profileData: UserProfile) => void;
   isLoading: boolean;
+  initialData?: UserProfile;
 };
 
-const ProfileForm = ({ onSubmit, isLoading }: ProfileFormProps) => {
+const ProfileForm = ({ onSubmit, isLoading, initialData }: ProfileFormProps) => {
   const [profile, setProfile] = useState<UserProfile>({
     fullName: "",
     email: "",
@@ -36,19 +37,23 @@ const ProfileForm = ({ onSubmit, isLoading }: ProfileFormProps) => {
   });
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setProfile((prev) => ({
-          ...prev,
-          ...userData,
-        }));
-      } catch (error) {
-        console.error("Failed to parse user data", error);
+    if (initialData) {
+      setProfile(initialData);
+    } else {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          setProfile((prev) => ({
+            ...prev,
+            ...userData,
+          }));
+        } catch (error) {
+          console.error("Failed to parse user data", error);
+        }
       }
     }
-  }, []);
+  }, [initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

@@ -1,100 +1,94 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wallet } from "@/components/wallet/WalletCard";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
 
+type Wallet = {
+  id: string;
+  name: string;
+  balance: number;
+  currency: string;
+};
+
 const Deposit = () => {
-  const [searchParams] = useSearchParams();
-  const preselectedWalletId = searchParams.get("walletId") || "";
-  
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  
   const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [selectedWalletId, setSelectedWalletId] = useState<string>(preselectedWalletId);
-  const [amount, setAmount] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isFetchingWallets, setIsFetchingWallets] = useState<boolean>(true);
+  const [selectedWalletId, setSelectedWalletId] = useState<string>("");
+  const [amount, setAmount] = useState<string>("100");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
 
-  // Fetch wallets from Supabase
   useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
     }
     
-    const fetchWallets = async () => {
-      try {
-        setIsFetchingWallets(true);
-        const { data, error } = await supabase
-          .from('wallets')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        
+    fetchWallets();
+  }, [user, navigate]);
+
+  const fetchWallets = async () => {
+    if (!user) return;
+    
+    try {
+      setIsFetching(true);
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
         // Transform the data to match our Wallet type
         const transformedWallets = data.map((wallet: any) => ({
           id: wallet.id,
           name: wallet.name,
-          balance: parseFloat(wallet.balance || 0),
+          balance: Number(wallet.balance || 0),
           currency: wallet.currency,
         }));
         
         setWallets(transformedWallets);
         
-        // If we have wallets but no selection, select the first one
-        if (transformedWallets.length > 0 && !selectedWalletId) {
-          setSelectedWalletId(transformedWallets[0].id);
+        // Set the first wallet as default selected
+        if (data.length > 0 && !selectedWalletId) {
+          setSelectedWalletId(data[0].id);
         }
-      } catch (error) {
-        console.error("Error fetching wallets:", error);
-        toast({
-          title: "Error loading wallets",
-          description: "There was a problem loading your wallets.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsFetchingWallets(false);
       }
-    };
-
-    fetchWallets();
-  }, [user, navigate, selectedWalletId, toast]);
-
-  const handleDeposit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    
-    if (!selectedWalletId) {
+    } catch (error) {
+      console.error("Error fetching wallets:", error);
       toast({
-        title: "No wallet selected",
-        description: "Please select a wallet for deposit.",
+        title: "Error loading wallets",
+        description: "There was a problem loading your wallets.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsFetching(false);
     }
-    
-    const depositAmount = parseFloat(amount);
-    
-    if (isNaN(depositAmount) || depositAmount <= 0) {
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only allow numbers and a single decimal point
+    if (/^\d*\.?\d*$/.test(value) || value === '') {
+      setAmount(value);
+    }
+  };
+
+  const handleDeposit = async () => {
+    if (!user || !selectedWalletId || !amount || parseFloat(amount) <= 0) {
       toast({
-        title: "Invalid amount",
-        description: "Please enter a valid positive amount.",
+        title: "Invalid deposit",
+        description: "Please select a wallet and enter a valid amount.",
         variant: "destructive",
       });
       return;
@@ -103,41 +97,43 @@ const Deposit = () => {
     setIsLoading(true);
     
     try {
-      // Create transaction record
-      const { data: transactionData, error: transactionError } = await supabase
+      // First, call the RPC function to increment the wallet balance
+      const { error: rpcError } = await supabase.rpc(
+        'increment_wallet_balance',
+        { 
+          wallet_id_param: selectedWalletId, 
+          amount_param: parseFloat(amount)
+        }
+      );
+      
+      if (rpcError) throw rpcError;
+      
+      // Then, record the transaction
+      const { error: transactionError } = await supabase
         .from('transactions')
         .insert([{
           wallet_id: selectedWalletId,
           user_id: user.id,
-          amount: depositAmount,
+          amount: parseFloat(amount),
           type: 'deposit',
           status: 'completed'
-        }])
-        .select();
+        }]);
       
       if (transactionError) throw transactionError;
       
-      // Update wallet balance using the stored function
-      const { data: updatedWallet, error: updateError } = await supabase
-        .rpc('increment_wallet_balance', {
-          wallet_id_param: selectedWalletId,
-          amount_param: depositAmount
-        });
-      
-      if (updateError) throw updateError;
-      
       toast({
         title: "Deposit successful",
-        description: `$${depositAmount.toFixed(2)} has been added to your wallet.`,
+        description: `You have deposited ${amount} to your wallet.`,
+        duration: 3000,
       });
       
-      // Navigate back to wallets page
+      // Navigate to wallets page
       navigate('/wallets');
     } catch (error) {
-      console.error("Error processing deposit:", error);
+      console.error("Error making deposit:", error);
       toast({
-        title: "Deposit failed",
-        description: "There was an error processing your deposit. Please try again.",
+        title: "Error making deposit",
+        description: "There was a problem processing your deposit. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -145,7 +141,7 @@ const Deposit = () => {
     }
   };
 
-  if (isFetchingWallets) {
+  if (isFetching) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -157,84 +153,84 @@ const Deposit = () => {
     <div className="container mx-auto p-4 max-w-md">
       <Card>
         <CardHeader>
-          <CardTitle>Deposit Funds</CardTitle>
-          <CardDescription>
-            Add money to your investment wallet
-          </CardDescription>
+          <CardTitle className="text-xl">Deposit Funds</CardTitle>
+          <CardDescription>Add money to your investment wallet</CardDescription>
         </CardHeader>
-        <form onSubmit={handleDeposit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="wallet">Select Wallet</Label>
-              {wallets.length > 0 ? (
+        <CardContent className="space-y-4">
+          {wallets.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-gray-500 mb-4">You don't have any wallets</p>
+              <Button 
+                onClick={() => navigate('/wallets')}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Create Wallet
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <label htmlFor="wallet" className="text-sm font-medium">
+                  Select Wallet
+                </label>
                 <Select 
-                  value={selectedWalletId} 
+                  value={selectedWalletId}
                   onValueChange={setSelectedWalletId}
-                  disabled={isLoading}
                 >
-                  <SelectTrigger id="wallet">
-                    <SelectValue placeholder="Select a wallet" />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select wallet" />
                   </SelectTrigger>
                   <SelectContent>
                     {wallets.map((wallet) => (
                       <SelectItem key={wallet.id} value={wallet.id}>
-                        {wallet.name} ({wallet.currency})
+                        {wallet.name} ({wallet.balance.toFixed(2)} {wallet.currency})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-gray-500 mb-2">You don't have any wallets yet</p>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => navigate('/wallets')}
-                  >
-                    Create a Wallet
-                  </Button>
-                </div>
-              )}
-            </div>
-            
-            {wallets.length > 0 && (
+              </div>
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount</Label>
+                <label htmlFor="amount" className="text-sm font-medium">
+                  Amount
+                </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
                   <Input
                     id="amount"
-                    type="number"
-                    placeholder="0.00"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="pl-8"
-                    min="0"
-                    step="0.01"
-                    required
-                    disabled={isLoading}
+                    onChange={handleAmountChange}
+                    className="pl-7"
+                    placeholder="0.00"
                   />
                 </div>
               </div>
-            )}
-          </CardContent>
+              
+              <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-600">
+                <p>
+                  This is a demo application. No actual money will be transferred.
+                </p>
+              </div>
+            </>
+          )}
+        </CardContent>
+        
+        {wallets.length > 0 && (
           <CardFooter>
             <Button
-              type="submit"
               className="w-full bg-primary hover:bg-primary/90"
-              disabled={!selectedWalletId || !amount || isLoading}
+              onClick={handleDeposit}
+              disabled={isLoading || !selectedWalletId || parseFloat(amount || '0') <= 0}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
                 </>
               ) : (
-                'Deposit Funds'
+                "Deposit Funds"
               )}
             </Button>
           </CardFooter>
-        </form>
+        )}
       </Card>
     </div>
   );
