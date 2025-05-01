@@ -20,6 +20,16 @@ const SignupForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!email || !password || !confirmPassword) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all fields",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    
     if (password !== confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -30,13 +40,28 @@ const SignupForm = () => {
       return;
     }
     
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
+      console.log("Attempting to sign up with:", email);
       const { error } = await signUp(email, password);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Sign up error details:", error);
+        throw error;
+      }
       
+      console.log("Sign up successful, redirecting to login");
       toast({
         title: "Sign up successful",
         description: "Your account has been created. Please check your email to confirm your registration.",

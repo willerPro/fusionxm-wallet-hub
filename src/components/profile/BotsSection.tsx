@@ -39,9 +39,23 @@ const BotsSection = () => {
     try {
       setIsLoading(true);
       
-      // Use custom SQL query to handle cases where bots table might not exist yet
+      // First check if the table exists to avoid errors
+      const { data: checkTable, error: checkError } = await supabase
+        .from('bots')
+        .select('id')
+        .limit(1);
+      
+      if (checkError && checkError.code === 'PGRST204') {
+        // Table doesn't exist yet
+        console.log("Bots table doesn't exist yet");
+        setBots([]);
+        setIsLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase
-        .rpc('get_user_bots');
+        .from('bots')
+        .select('*');
       
       if (error) {
         console.error("Error fetching bots:", error);
@@ -107,19 +121,19 @@ const BotsSection = () => {
       type: 'binary', 
       name: 'Binary Trading (Pocket Option)', 
       description: 'Automated binary options trading bot',
-      requiresFunds: 100
+      requiresFunds: 500
     },
     { 
       type: 'nextbase', 
       name: 'Nextbase Bot', 
       description: 'Neural network trading algorithm',
-      requiresFunds: 250
+      requiresFunds: 3000
     },
     { 
       type: 'contract', 
       name: 'Contract Bot', 
       description: 'Smart contract execution bot',
-      requiresFunds: 500
+      requiresFunds: 2600
     }
   ];
   

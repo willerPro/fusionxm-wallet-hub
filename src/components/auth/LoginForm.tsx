@@ -18,13 +18,29 @@ const LoginForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Missing fields",
+        description: "Please enter both email and password",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
+      console.log("Attempting to sign in with:", email);
       const { error } = await signIn(email, password);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Login error details:", error);
+        throw error;
+      }
       
+      console.log("Login successful, redirecting to dashboard");
       toast({
         title: "Login successful",
         description: "You have been successfully logged in.",
@@ -70,9 +86,9 @@ const LoginForm = () => {
               <label htmlFor="password" className="text-sm font-medium">
                 Password
               </label>
-              <a href="#" className="text-xs text-primary hover:underline">
+              <Link to="#" className="text-xs text-primary hover:underline">
                 Forgot Password?
-              </a>
+              </Link>
             </div>
             <Input
               id="password"

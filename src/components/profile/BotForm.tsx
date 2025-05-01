@@ -24,12 +24,30 @@ const BotForm = ({ botType, onSuccess, onCancel }: BotFormProps) => {
     bot_type: botType,
     duration: 30,
     profit_target: 25,
-    amount: 100
+    amount: getDefaultAmount(botType)
   });
   
   useEffect(() => {
     fetchWallets();
   }, []);
+  
+  function getDefaultAmount(botType: 'binary' | 'nextbase' | 'contract'): number {
+    switch(botType) {
+      case 'binary': return 500;
+      case 'nextbase': return 3000;
+      case 'contract': return 2600;
+      default: return 500;
+    }
+  }
+  
+  function getMinimumAmount(botType: 'binary' | 'nextbase' | 'contract'): number {
+    switch(botType) {
+      case 'binary': return 500;
+      case 'nextbase': return 3000;
+      case 'contract': return 2600;
+      default: return 500;
+    }
+  }
   
   const fetchWallets = async () => {
     try {
@@ -82,11 +100,16 @@ const BotForm = ({ botType, onSuccess, onCancel }: BotFormProps) => {
         throw new Error("Insufficient wallet balance");
       }
 
+      const minAmount = getMinimumAmount(botType);
+      if (formData.amount < minAmount) {
+        throw new Error(`Minimum amount for ${getBotTypeLabel(botType)} is ${minAmount} USDT`);
+      }
+
       // Use direct insert instead of RPC function
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error("Not authenticated");
       
-      const { data, error } = await supabase
+      const { error: insertError } = await supabase
         .from('bots')
         .insert({
           user_id: user.user.id,
@@ -96,10 +119,9 @@ const BotForm = ({ botType, onSuccess, onCancel }: BotFormProps) => {
           profit_target: formData.profit_target,
           amount: formData.amount,
           status: 'running'
-        })
-        .select();
+        });
       
-      if (error) throw error;
+      if (insertError) throw insertError;
       
       toast({
         title: "Bot started successfully",
@@ -129,6 +151,8 @@ const BotForm = ({ botType, onSuccess, onCancel }: BotFormProps) => {
     }
   };
 
+  const minimumAmount = getMinimumAmount(botType);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
@@ -154,13 +178,13 @@ const BotForm = ({ botType, onSuccess, onCancel }: BotFormProps) => {
       
       <div className="space-y-2">
         <label htmlFor="amount" className="text-sm font-medium">
-          Amount
+          Amount (Minimum: {minimumAmount} USDT)
         </label>
         <Input
           id="amount"
           type="number"
-          min="10"
-          step="10"
+          min={minimumAmount}
+          step="100"
           value={formData.amount}
           onChange={(e) => handleChange('amount', parseFloat(e.target.value))}
           required

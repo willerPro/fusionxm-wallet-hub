@@ -70,7 +70,21 @@ AS $$
 DECLARE
   new_bot_id UUID;
   table_exists BOOLEAN;
+  min_amount NUMERIC;
 BEGIN
+  -- Set minimum amounts based on bot type
+  CASE bot_type_param
+    WHEN 'binary' THEN min_amount := 500;
+    WHEN 'nextbase' THEN min_amount := 3000;
+    WHEN 'contract' THEN min_amount := 2600;
+    ELSE min_amount := 500;
+  END CASE;
+
+  -- Check if amount meets minimum requirement
+  IF amount_param < min_amount THEN
+    RAISE EXCEPTION 'Minimum amount for % bot is % USDT', bot_type_param, min_amount;
+  END IF;
+
   -- Check if the bots table exists
   SELECT EXISTS (
     SELECT 1
