@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +41,7 @@ const BotForm = ({ onSubmit, isLoading, wallets }: BotFormProps) => {
   const [profitTarget, setProfitTarget] = useState<number>(15);
   const [amount, setAmount] = useState<number>(500);
   
-  // Min amount requirements
+  // Min amount requirements - updated as per user request
   const minAmounts: Record<BotType, number> = {
     binary: 500,
     nextbase: 3000,

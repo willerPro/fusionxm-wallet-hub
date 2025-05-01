@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,7 +8,6 @@ import BotCard from "./BotCard";
 import { PlusCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
-import type { Database } from "@/types/supabase"; // Import the updated Database type
 
 type Wallet = {
   id: string;
@@ -44,7 +42,7 @@ const BotsSection = () => {
       
       if (data) {
         // The data is already an array of bots in the correct format
-        setBots(data as Bot[]);
+        setBots(data as unknown as Bot[]);
       } else {
         setBots([]);
       }
