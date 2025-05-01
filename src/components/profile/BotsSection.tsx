@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Bot, BotType } from "@/types/bot";
+import { Bot, BotType, CreateBotParams } from "@/types/bot";
 import BotForm from "./BotForm";
 import BotCard from "./BotCard";
 import { PlusCircle, Loader2 } from "lucide-react";
@@ -42,7 +43,7 @@ const BotsSection = () => {
       
       if (data) {
         // The data is already an array of bots in the correct format
-        setBots(data as unknown as Bot[]);
+        setBots(data as Bot[]);
       } else {
         setBots([]);
       }
@@ -84,15 +85,18 @@ const BotsSection = () => {
     setIsCreating(true);
     
     try {
-      // Use RPC function to create the bot and update wallet balance
-      const { data, error } = await supabase.rpc('create_bot', {
+      // Create parameters object with the correct types
+      const params: CreateBotParams = {
         user_id_param: user.id,
         wallet_id_param: botData.walletId,
         bot_type_param: botData.botType,
         duration_param: botData.duration,
         profit_target_param: botData.profitTarget,
         amount_param: botData.amount
-      });
+      };
+      
+      // Use RPC function to create the bot and update wallet balance
+      const { data, error } = await supabase.rpc('create_bot', params);
       
       if (error) throw error;
       

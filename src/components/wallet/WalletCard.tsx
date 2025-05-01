@@ -17,6 +17,12 @@ export type Wallet = {
   passwordProtected?: boolean;
 };
 
+// Define the parameters interface for the delete_wallet RPC function
+interface DeleteWalletParams {
+  wallet_id_param: string;
+  password_param: string;
+}
+
 type WalletCardProps = {
   wallet: Wallet;
   onSelect?: (wallet: Wallet) => void;
@@ -61,11 +67,13 @@ const WalletCard = ({ wallet, onSelect, onDelete, refetchWallets }: WalletCardPr
         return;
       }
 
-      const { error } = await supabase
-        .rpc('delete_wallet', { 
-          wallet_id_param: wallet.id,
-          password_param: password 
-        });
+      // Create parameters object with the correct types
+      const params: DeleteWalletParams = {
+        wallet_id_param: wallet.id,
+        password_param: password
+      };
+
+      const { error } = await supabase.rpc('delete_wallet', params);
 
       if (error) {
         console.error("Error deleting wallet:", error);
