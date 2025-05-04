@@ -53,6 +53,13 @@ export type Database = GeneratedDatabase & {
         };
         Returns: { id: string };
       };
+      increment_wallet_balance: {
+        Args: {
+          wallet_id_param: string;
+          amount_param: number;
+        };
+        Returns: undefined;
+      };
     };
   };
 };

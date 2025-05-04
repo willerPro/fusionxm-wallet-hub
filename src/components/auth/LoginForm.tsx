@@ -4,84 +4,61 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "./AuthContext";
-import { useToast } from "../ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   const { signIn } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     
     if (!email || !password) {
-      toast({
-        title: "Missing fields",
-        description: "Please enter both email and password",
-        variant: "destructive",
-        duration: 3000,
-      });
+      setErrorMessage("Please enter both email and password");
       return;
     }
     
     setIsLoading(true);
 
     try {
-      console.log("Attempting to sign in with:", email);
       const { error } = await signIn(email, password);
       
       if (error) {
-        console.error("Login error details:", error);
+        console.error("Login error:", error);
         
-        // Provide more specific error messages based on the error
-        if (error.message && error.message.includes("Invalid login credentials")) {
-          toast({
-            title: "Login failed",
-            description: "The email or password you entered is incorrect. Please check your credentials and try again.",
-            variant: "destructive",
-            duration: 5000,
-          });
-        } else if (error.message && error.message.includes("Email not confirmed")) {
-          toast({
-            title: "Email not confirmed",
-            description: "Please check your email inbox and confirm your email before logging in.",
-            variant: "destructive",
-            duration: 5000,
-          });
+        // Handle specific error messages
+        if (error.message?.includes("Invalid login credentials")) {
+          setErrorMessage("The email or password you entered is incorrect.");
+        } else if (error.message?.includes("Email not confirmed")) {
+          setErrorMessage("Please check your email inbox and confirm your email before logging in.");
         } else {
-          toast({
-            title: "Login failed",
-            description: error.message || "Please check your credentials and try again.",
-            variant: "destructive",
-            duration: 5000,
-          });
+          setErrorMessage(error.message || "Login failed. Please try again.");
         }
+        
         setIsLoading(false);
         return;
       }
       
-      console.log("Login successful, redirecting to dashboard");
+      // Success
       toast({
         title: "Login successful",
-        description: "You have been successfully logged in.",
+        description: "Welcome back!",
         duration: 3000,
       });
       
       navigate("/dashboard");
     } catch (error: any) {
-      console.error("Login error:", error);
-      toast({
-        title: "Login failed",
-        description: error.message || "Please check your credentials and try again.",
-        variant: "destructive",
-        duration: 5000,
-      });
-    } finally {
+      console.error("Login exception:", error);
+      setErrorMessage(error.message || "An unexpected error occurred");
       setIsLoading(false);
     }
   };
@@ -92,6 +69,13 @@ const LoginForm = () => {
         <CardTitle className="text-center">Login to Your Account</CardTitle>
       </CardHeader>
       <CardContent>
+        {errorMessage && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
@@ -103,6 +87,7 @@ const LoginForm = () => {
               placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
               required
             />
           </div>
@@ -121,6 +106,7 @@ const LoginForm = () => {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
               required
             />
           </div>

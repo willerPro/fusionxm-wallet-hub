@@ -20,10 +20,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up the auth state listener
+    // Set up the auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        console.log("Auth state changed:", event, currentSession?.user?.email);
+        console.log("Auth state changed:", event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Get the initial session
+    // Then get the initial session
     const fetchSession = async () => {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -68,13 +68,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       // Trim email to prevent whitespace issues
-      const trimmedEmail = email.trim();
+      const trimmedEmail = email.trim().toLowerCase();
+      
+      console.log("Attempting to sign in with:", trimmedEmail);
+      
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email: trimmedEmail, 
         password 
       });
       
-      console.log("Sign in result:", error ? "Error" : "Success", data?.user?.email);
+      console.log("Sign in result:", error ? "Error" : "Success");
       
       if (!error && data?.user) {
         localStorage.setItem("user", JSON.stringify(data.user));
@@ -89,16 +92,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     try {
-      // Trim email to prevent whitespace issues
-      const trimmedEmail = email.trim();
+      // Trim and lowercase email to prevent issues
+      const trimmedEmail = email.trim().toLowerCase();
       
-      // First attempt to create the user
+      console.log("Attempting to sign up with:", trimmedEmail);
+      
+      // First try to sign up the user
       const { data, error } = await supabase.auth.signUp({ 
         email: trimmedEmail, 
         password 
       });
       
-      console.log("Sign up result:", error ? "Error" : "Success", data?.user?.email);
+      console.log("Sign up result:", error ? "Error" : "Success");
       
       if (error) {
         // If we got a database error but the user might have been created, inform the user
@@ -116,16 +121,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { error: null, userCreated: true };
           }
         }
+        
+        // User already registered check
+        if (error.message && error.message.includes("User already registered")) {
+          return { error: { message: "An account with this email already exists. Please log in instead." } };
+        }
+        
         return { error };
       }
       
-      if (data?.user) {
-        // Don't store user in localStorage yet as they need to confirm their email
-        console.log("User created, waiting for email confirmation");
-        return { error: null, userCreated: true };
-      }
-      
-      return { error: null };
+      return { error: null, userCreated: true };
     } catch (error) {
       console.error("Sign up exception:", error);
       return { error };
@@ -133,12 +138,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Error signing out:", error);
-    } else {
-      localStorage.removeItem("user");
-      console.log("Sign out completed");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Error signing out:", error);
+      } else {
+        localStorage.removeItem("user");
+        console.log("Sign out completed");
+      }
+    } catch (error) {
+      console.error("Exception during sign out:", error);
     }
   };
 

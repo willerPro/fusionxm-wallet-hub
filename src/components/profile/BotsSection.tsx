@@ -1,182 +1,140 @@
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/use-toast";
-import { Bot, BotType, CreateBotParams } from "@/types/bot";
-import BotForm from "./BotForm";
+import React, { useState, useEffect } from "react";
 import BotCard from "./BotCard";
-import { PlusCircle, Loader2 } from "lucide-react";
+import BotForm from "./BotForm";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/components/auth/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Bot } from "@/types/bot";
 
-type Wallet = {
-  id: string;
-  name: string;
-  balance: number;
-  currency: string;
-};
-
-const BotsSection = () => {
-  const { toast } = useToast();
-  const { user } = useAuth();
+const BotsSection: React.FC = () => {
+  const [showForm, setShowForm] = useState(false);
   const [bots, setBots] = useState<Bot[]>([]);
-  const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
+  // Fetch bots on component mount
   useEffect(() => {
-    if (user) {
-      fetchBots();
-      fetchWallets();
-    }
-  }, [user]);
+    fetchBots();
+  }, []);
 
   const fetchBots = async () => {
     try {
-      setIsLoading(true);
-      // Use RPC function to get user bots safely
-      const { data, error } = await supabase.rpc('get_user_bots');
+      setLoading(true);
+      setError(null);
       
-      if (error) throw error;
+      const { data, error } = await supabase.rpc('get_user_bots', {});
       
-      if (data) {
-        // The data is already an array of bots in the correct format
-        setBots(data as Bot[]);
-      } else {
-        setBots([]);
+      if (error) {
+        console.error("Error fetching bots:", error);
+        setError("Failed to load bots. Please try again later.");
+        return;
       }
-    } catch (error) {
-      console.error("Error fetching bots:", error);
-      toast({
-        title: "Error loading bots",
-        description: "There was a problem loading your trading bots.",
-        variant: "destructive",
-      });
+      
+      console.log("Fetched bots:", data);
+      setBots(data || []);
+    } catch (err: any) {
+      console.error("Exception fetching bots:", err);
+      setError(err.message || "An unexpected error occurred");
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchWallets = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('wallets')
-        .select('id, name, balance, currency');
-      
-      if (error) throw error;
-      
-      setWallets(data as Wallet[]);
-    } catch (error) {
-      console.error("Error fetching wallets:", error);
+      setLoading(false);
     }
   };
 
   const handleCreateBot = async (botData: {
     walletId: string;
-    botType: BotType;
+    botType: 'binary' | 'nextbase' | 'contract';
     duration: number;
     profitTarget: number;
     amount: number;
   }) => {
-    if (!user) return;
-    
-    setIsCreating(true);
-    
     try {
-      // Create parameters object with the correct types
-      const params: CreateBotParams = {
-        user_id_param: user.id,
+      setError(null);
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (!userData?.user) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to create a bot.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('create_bot', {
+        user_id_param: userData.user.id,
         wallet_id_param: botData.walletId,
         bot_type_param: botData.botType,
         duration_param: botData.duration,
         profit_target_param: botData.profitTarget,
         amount_param: botData.amount
-      };
-      
-      // Use RPC function to create the bot and update wallet balance
-      const { data, error } = await supabase.rpc('create_bot', params);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Bot created",
-        description: `Your ${botData.botType} trading bot has been created successfully.`,
       });
-      
-      setIsDialogOpen(false);
-      
-      // Refresh the bots and wallets data
-      fetchBots();
-      fetchWallets();
-    } catch (error: any) {
-      console.error("Error creating bot:", error);
+
+      if (error) {
+        console.error("Error creating bot:", error);
+        toast({
+          title: "Failed to Create Bot",
+          description: error.message || "Please try again later.",
+          variant: "destructive",
+          duration: 5000,
+        });
+        return;
+      }
+
       toast({
-        title: "Error creating bot",
-        description: error.message || "There was a problem creating your bot.",
+        title: "Bot Created",
+        description: "Your trading bot has been successfully created.",
+        duration: 3000,
+      });
+
+      setShowForm(false);
+      fetchBots(); // Refresh the bots list
+    } catch (err: any) {
+      console.error("Exception creating bot:", err);
+      toast({
+        title: "Error",
+        description: err.message || "An unexpected error occurred",
         variant: "destructive",
+        duration: 5000,
       });
-    } finally {
-      setIsCreating(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold">Trading Bots</h2>
-        <Button 
-          variant="default"
-          onClick={() => setIsDialogOpen(true)}
-          disabled={wallets.length === 0}
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Trading Bots</h3>
+        <button 
+          onClick={() => setShowForm(!showForm)} 
+          className="text-primary hover:underline text-sm"
         >
-          <PlusCircle className="mr-2 h-4 w-4" /> New Bot
-        </Button>
+          {showForm ? "Cancel" : "Create Bot"}
+        </button>
       </div>
 
-      {wallets.length === 0 && (
-        <div className="bg-yellow-50 border border-yellow-100 rounded-md p-4 mb-6">
-          <p className="text-yellow-700">
-            You need to create a wallet before you can create a trading bot. Go to the Wallets page to create one.
-          </p>
-        </div>
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
-      <div className="space-y-4">
-        {bots.length > 0 ? (
-          bots.map((bot) => (
-            <BotCard key={bot.id} bot={bot} />
-          ))
-        ) : (
-          <div className="text-center py-10 border rounded-lg bg-slate-50">
-            <p className="text-gray-500 mb-4">You don't have any trading bots yet</p>
-            <Button 
-              onClick={() => setIsDialogOpen(true)}
-              disabled={wallets.length === 0}
-            >
-              Create Your First Bot
-            </Button>
-          </div>
-        )}
-      </div>
+      {showForm && <BotForm onSubmit={handleCreateBot} onCancel={() => setShowForm(false)} />}
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Trading Bot</DialogTitle>
-          </DialogHeader>
-          <BotForm onSubmit={handleCreateBot} isLoading={isCreating} wallets={wallets} />
-        </DialogContent>
-      </Dialog>
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading bots...</p>
+      ) : bots.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {bots.map((bot) => (
+            <BotCard key={bot.id} bot={bot} onBotUpdate={fetchBots} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">You haven't created any trading bots yet.</p>
+      )}
     </div>
   );
 };
