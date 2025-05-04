@@ -1,5 +1,6 @@
 
 export type BotType = 'binary' | 'nextbase' | 'contract';
+export type BotStatus = 'running' | 'paused' | 'completed' | 'failed';
 
 export interface Bot {
   id: string;
@@ -9,17 +10,7 @@ export interface Bot {
   duration: number;
   profit_target: number;
   amount: number;
-  status: 'running' | 'paused' | 'completed' | 'failed';
+  status: BotStatus;
   created_at: string;
   updated_at: string;
-}
-
-// Add a type for the RPC function parameter
-export interface CreateBotParams {
-  user_id_param: string;
-  wallet_id_param: string;
-  bot_type_param: BotType;
-  duration_param: number;
-  profit_target_param: number;
-  amount_param: number;
 }

@@ -1,14 +1,13 @@
-
-import { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import BalanceCard from "@/components/dashboard/BalanceCard";
-import RecentActivityItem, { Activity } from "@/components/dashboard/RecentActivityItem";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Loader2, Plus } from "lucide-react";
+import RecentActivityItem from "@/components/dashboard/RecentActivityItem";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
-import { Wallet } from "@/components/wallet/WalletCard";
+import { Loader2, ArrowRight } from "lucide-react";
+import { Wallet } from "@/types/wallet";
 
 const Dashboard = () => {
   const navigate = useNavigate();

@@ -1,204 +1,129 @@
-import { useState } from "react";
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { BotType } from "@/types/bot";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { supabase } from '@/integrations/supabase/client';
+import { Wallet } from '@/types/wallet';
+import { BotType } from '@/types/bot';
 
-type Wallet = {
-  id: string;
-  name: string;
-  balance: number;
-  currency: string;
-};
-
-type BotFormProps = {
+export interface BotFormProps {
   onSubmit: (botData: {
     walletId: string;
     botType: BotType;
     duration: number;
     profitTarget: number;
     amount: number;
-  }) => void;
-  isLoading: boolean;
-  wallets: Wallet[];
-};
+  }) => Promise<void>;
+  onCancel?: () => void;
+}
 
-const BotForm = ({ onSubmit, isLoading, wallets }: BotFormProps) => {
-  const [selectedWallet, setSelectedWallet] = useState<string>("");
-  const [botType, setBotType] = useState<BotType>("binary");
-  const [duration, setDuration] = useState<number>(30);
-  const [profitTarget, setProfitTarget] = useState<number>(15);
+const BotForm: React.FC<BotFormProps> = ({ onSubmit, onCancel }) => {
+  const [walletId, setWalletId] = useState<string>('');
+  const [botType, setBotType] = useState<BotType>('binary');
+  const [duration, setDuration] = useState<number>(1);
+  const [profitTarget, setProfitTarget] = useState<number>(5);
   const [amount, setAmount] = useState<number>(500);
-  
-  // Min amount requirements - updated as per user request
-  const minAmounts: Record<BotType, number> = {
-    binary: 500,
-    nextbase: 3000,
-    contract: 2600
-  };
-  
-  // Get the selected wallet object
-  const wallet = wallets.find(w => w.id === selectedWallet);
-  const walletBalance = wallet?.balance || 0;
-  
-  // Get min amount based on bot type
-  const minAmount = minAmounts[botType];
-  
-  // Check if form is valid
-  const isFormValid = selectedWallet && 
-    amount >= minAmount && 
-    amount <= walletBalance;
+  const [wallets, setWallets] = useState<Wallet[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchWallets = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("wallets")
+          .select("*");
+
+        if (error) throw error;
+
+        setWallets(data as Wallet[]);
+      } catch (error) {
+        console.error("Error fetching wallets:", error);
+      }
+    };
+
+    fetchWallets();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (isFormValid) {
-      onSubmit({
-        walletId: selectedWallet,
-        botType,
-        duration,
-        profitTarget,
-        amount
-      });
-    }
+    await onSubmit({ walletId, botType, duration, profitTarget, amount });
   };
 
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardContent className="space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="wallet" className="text-sm font-medium">
-              Select Wallet
-            </label>
-            <Select value={selectedWallet} onValueChange={setSelectedWallet}>
-              <SelectTrigger id="wallet">
-                <SelectValue placeholder="Select wallet" />
+          <div>
+            <label className="block text-sm font-medium leading-none pb-2">Wallet</label>
+            <Select onValueChange={setWalletId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a wallet" />
               </SelectTrigger>
               <SelectContent>
                 {wallets.map((wallet) => (
-                  <SelectItem key={wallet.id} value={wallet.id}>
-                    {wallet.name} ({new Intl.NumberFormat(undefined, {
-                      style: 'currency',
-                      currency: wallet.currency
-                    }).format(wallet.balance)})
-                  </SelectItem>
+                  <SelectItem key={wallet.id} value={wallet.id}>{wallet.name} ({wallet.currency})</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="botType" className="text-sm font-medium">
-              Bot Type
-            </label>
-            <Select value={botType} onValueChange={(value) => setBotType(value as BotType)}>
-              <SelectTrigger id="botType">
-                <SelectValue />
+
+          <div>
+            <label className="block text-sm font-medium leading-none pb-2">Bot Type</label>
+            <Select onValueChange={setBotType}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select bot type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="binary">Binary Options Bot</SelectItem>
-                <SelectItem value="nextbase">Nextbase Pro Bot</SelectItem>
-                <SelectItem value="contract">Contract Trading Bot</SelectItem>
+                <SelectItem value="binary">Binary</SelectItem>
+                <SelectItem value="nextbase">NextBase</SelectItem>
+                <SelectItem value="contract">Contract</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-gray-500">
-              Minimum amount: {new Intl.NumberFormat(undefined, {
-                style: 'currency',
-                currency: wallet?.currency || 'USD'
-              }).format(minAmount)}
-            </p>
           </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="amount" className="text-sm font-medium">
-              Investment Amount
-            </label>
+
+          <div>
+            <label className="block text-sm font-medium leading-none pb-2">Duration (Days)</label>
+            <Slider
+              defaultValue={[1]}
+              max={30}
+              min={1}
+              step={1}
+              onValueChange={(value) => setDuration(value[0])}
+            />
+            <Input type="number" value={duration} readOnly className="mt-2" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium leading-none pb-2">Profit Target (%)</label>
+            <Slider
+              defaultValue={[5]}
+              max={20}
+              min={1}
+              step={1}
+              onValueChange={(value) => setProfitTarget(value[0])}
+            />
+            <Input type="number" value={profitTarget} readOnly className="mt-2" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium leading-none pb-2">Amount (USDT)</label>
             <Input
-              id="amount"
               type="number"
               value={amount}
               onChange={(e) => setAmount(Number(e.target.value))}
-              min={minAmount}
-              max={walletBalance}
-              required
             />
-            {selectedWallet && (
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>Min: {minAmount}</span>
-                <span>Available: {new Intl.NumberFormat(undefined, {
-                  style: 'currency',
-                  currency: wallet?.currency || 'USD'
-                }).format(walletBalance)}</span>
-              </div>
-            )}
-            {amount < minAmount && (
-              <p className="text-xs text-red-500">
-                Amount must be at least {new Intl.NumberFormat(undefined, {
-                  style: 'currency',
-                  currency: wallet?.currency || 'USD'
-                }).format(minAmount)}
-              </p>
-            )}
-            {amount > walletBalance && (
-              <p className="text-xs text-red-500">
-                Amount cannot exceed your wallet balance
-              </p>
-            )}
           </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Duration (days): {duration}
-            </label>
-            <Slider
-              value={[duration]}
-              onValueChange={(values) => setDuration(values[0])}
-              min={1}
-              max={90}
-              step={1}
-            />
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>1 day</span>
-              <span>90 days</span>
-            </div>
+
+          <Separator />
+
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" type="button" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button type="submit">Create Bot</Button>
           </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Profit Target (%): {profitTarget}
-            </label>
-            <Slider
-              value={[profitTarget]}
-              onValueChange={(values) => setProfitTarget(values[0])}
-              min={5}
-              max={50}
-              step={1}
-            />
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>5%</span>
-              <span>50%</span>
-            </div>
-          </div>
-          
-          <Button
-            type="submit"
-            className="w-full bg-primary hover:bg-primary/90"
-            disabled={!isFormValid || isLoading}
-          >
-            {isLoading ? "Creating..." : "Create Trading Bot"}
-          </Button>
         </form>
       </CardContent>
     </Card>

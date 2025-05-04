@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import WalletCard, { Wallet } from "@/components/wallet/WalletCard";
+import WalletCard from "@/components/wallet/WalletCard";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
 import WalletForm from "@/components/wallet/WalletForm";
@@ -10,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthContext";
+import { Wallet } from "@/types/wallet";
 
 const Wallets = () => {
   const navigate = useNavigate();
@@ -151,7 +151,7 @@ const Wallets = () => {
           wallets.map((wallet) => (
             <WalletCard 
               key={wallet.id} 
-              wallet={wallet} 
+              walletId={wallet.id} 
               onDelete={handleDeleteWallet}
               refetchWallets={fetchWallets}
             />
