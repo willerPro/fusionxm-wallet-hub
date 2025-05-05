@@ -9,6 +9,59 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      crypto_transactions: {
+        Row: {
+          address: string
+          amount: number
+          coin_type: string
+          created_at: string | null
+          id: string
+          password_verified: boolean | null
+          status: string | null
+          tx_hash: string | null
+          type: string
+          updated_at: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          address: string
+          amount: number
+          coin_type: string
+          created_at?: string | null
+          id?: string
+          password_verified?: boolean | null
+          status?: string | null
+          tx_hash?: string | null
+          type: string
+          updated_at?: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          address?: string
+          amount?: number
+          coin_type?: string
+          created_at?: string | null
+          id?: string
+          password_verified?: boolean | null
+          status?: string | null
+          tx_hash?: string | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crypto_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investors: {
         Row: {
           address: string | null

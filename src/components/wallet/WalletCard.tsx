@@ -1,9 +1,11 @@
+
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Wallet } from "@/types/wallet";
 
@@ -15,7 +17,35 @@ interface WalletCardProps {
 
 const WalletCard: React.FC<WalletCardProps> = ({ walletId, onDelete, refetchWallets }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
   const { toast } = useToast();
+
+  // Fetch wallet details
+  useState(() => {
+    const fetchWallet = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('wallets')
+          .select('*')
+          .eq('id', walletId)
+          .single();
+        
+        if (error) throw error;
+        
+        setWallet({
+          id: data.id,
+          name: data.name,
+          balance: parseFloat(data.balance || 0),
+          currency: data.currency,
+          passwordProtected: data.password_protected || false
+        });
+      } catch (error) {
+        console.error("Error fetching wallet details:", error);
+      }
+    };
+    
+    fetchWallet();
+  });
 
   const handleDelete = async () => {
     try {
@@ -45,13 +75,28 @@ const WalletCard: React.FC<WalletCardProps> = ({ walletId, onDelete, refetchWall
   return (
     <Card className="bg-white shadow-md rounded-md">
       <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold">Wallet ID: {walletId}</h3>
+        <div className="flex flex-col space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">{wallet?.name || `Wallet ${walletId.slice(0, 8)}`}</h3>
+              <p className="text-gray-600">{wallet?.currency || 'USD'} {wallet?.balance?.toFixed(2) || '0.00'}</p>
+            </div>
+            <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
+              Delete
+            </Button>
           </div>
-          <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
-            Delete
-          </Button>
+          
+          <div className="flex space-x-2 pt-2">
+            <Button variant="outline" size="sm" asChild className="flex-1">
+              <Link to={`/deposit?walletId=${walletId}`}>Deposit</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild className="flex-1">
+              <Link to={`/withdraw?walletId=${walletId}`}>Withdraw</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild className="flex-1">
+              <Link to="/crypto">Crypto</Link>
+            </Button>
+          </div>
         </div>
       </CardContent>
 
