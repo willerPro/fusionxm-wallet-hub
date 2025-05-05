@@ -9,3 +9,15 @@ export interface Activity {
   date: string;
   walletId?: string;
 }
+
+export interface CryptoTransaction {
+  id: string;
+  type: 'send' | 'receive';
+  amount: number;
+  asset: string;
+  address: string;
+  status: 'pending' | 'completed' | 'failed';
+  date: string;
+  hash?: string;
+  walletId?: string;
+}

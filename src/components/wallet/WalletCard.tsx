@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { deleteWallet } from "@/actions/wallet-actions";
 import { Wallet } from '@/types/wallet';
-import { deleteWallet as deleteWalletAction } from "@/actions/wallet-actions";
-import { useTransition } from 'react';
 
 interface WalletCardProps {
   wallet: Wallet;
@@ -37,25 +37,27 @@ const WalletCard: React.FC<WalletCardProps> = ({
 
   const handleDelete = (walletId: string) => {
     setDeleteConfirmation(true);
-    startTransition(async () => {
-      try {
-        await deleteWalletAction(walletId);
-        toast({
-          title: "Wallet deleted",
-          description: "Your wallet has been successfully deleted.",
+    startTransition(() => {
+      deleteWallet(walletId)
+        .then(() => {
+          toast({
+            title: "Wallet deleted",
+            description: "Your wallet has been successfully deleted.",
+          });
+          if (onDelete) {
+            onDelete(walletId);
+          }
+        })
+        .catch((error: any) => {
+          toast({
+            title: "Error deleting wallet",
+            description: error.message || "Failed to delete wallet. Please try again.",
+            variant: "destructive",
+          });
+        })
+        .finally(() => {
+          setDeleteConfirmation(false);
         });
-        if (onDelete) {
-          onDelete(walletId);
-        }
-      } catch (error: any) {
-        toast({
-          title: "Error deleting wallet",
-          description: error.message || "Failed to delete wallet. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setDeleteConfirmation(false);
-      }
     });
   };
 
@@ -113,18 +115,18 @@ const WalletCard: React.FC<WalletCardProps> = ({
         <Button variant="ghost">
           View Transactions
         </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(wallet.id.toString());
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete
-              </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete(wallet.id.toString());
+          }}
+        >
+          <Trash2 className="h-4 w-4 mr-1" />
+          Delete
+        </Button>
       </CardFooter>
     </Card>
   );

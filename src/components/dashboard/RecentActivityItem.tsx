@@ -1,6 +1,6 @@
 
 import { Activity } from "@/types/activity";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, parseISO } from "date-fns";
 
 const RecentActivityItem = ({ activity }: { activity: Activity }) => {
   const getActivityIcon = () => {
@@ -37,6 +37,15 @@ const RecentActivityItem = ({ activity }: { activity: Activity }) => {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    try {
+      return formatDistanceToNow(parseISO(dateString), { addSuffix: true });
+    } catch (error) {
+      // Fallback to the original date string if parsing fails
+      return dateString;
+    }
+  };
+
   return (
     <div className="flex items-center py-3 border-b border-gray-100">
       <div
@@ -47,7 +56,7 @@ const RecentActivityItem = ({ activity }: { activity: Activity }) => {
       <div className="flex-1">
         <p className="text-sm font-medium">{activity.description}</p>
         <p className="text-xs text-gray-500">
-          {formatDistanceToNow(new Date(activity.date), { addSuffix: true })}
+          {formatDate(activity.date)}
         </p>
       </div>
       <div className={`text-right ${getActivityColor()}`}>
