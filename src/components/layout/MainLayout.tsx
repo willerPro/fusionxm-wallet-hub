@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import BottomNavigation from "./BottomNavigation";
 import Header from "./Header";
+import OfflineWarning from "./OfflineWarning";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   
   return (
     <div className="min-h-screen flex flex-col bg-secondary/20">
+      <OfflineWarning />
       <Header />
       <main className={`flex-1 ${!isAuthPage ? "pb-16" : ""}`}>
         {children}
