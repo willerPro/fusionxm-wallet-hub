@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,7 +38,16 @@ const BotForm: React.FC<BotFormProps> = ({ onSubmit, onCancel }) => {
 
         if (error) throw error;
 
-        setWallets(data as Wallet[]);
+        // Transform data to match Wallet interface
+        const walletsData = data.map((wallet: any) => ({
+          id: wallet.id,
+          name: wallet.name,
+          balance: parseFloat(wallet.balance || 0),
+          currency: wallet.currency,
+          passwordProtected: wallet.password_protected || false
+        })) as Wallet[];
+
+        setWallets(walletsData);
       } catch (error) {
         console.error("Error fetching wallets:", error);
       }
@@ -57,7 +67,7 @@ const BotForm: React.FC<BotFormProps> = ({ onSubmit, onCancel }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium leading-none pb-2">Wallet</label>
-            <Select onValueChange={setWalletId}>
+            <Select onValueChange={(value: string) => setWalletId(value)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a wallet" />
               </SelectTrigger>
@@ -71,7 +81,7 @@ const BotForm: React.FC<BotFormProps> = ({ onSubmit, onCancel }) => {
 
           <div>
             <label className="block text-sm font-medium leading-none pb-2">Bot Type</label>
-            <Select onValueChange={setBotType}>
+            <Select onValueChange={(value: string) => setBotType(value as BotType)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select bot type" />
               </SelectTrigger>

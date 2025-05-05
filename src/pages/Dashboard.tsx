@@ -1,13 +1,15 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import BalanceCard from "@/components/dashboard/BalanceCard";
 import RecentActivityItem from "@/components/dashboard/RecentActivityItem";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight, Plus } from "lucide-react";
 import { Wallet } from "@/types/wallet";
+import { Activity } from "@/types/activity";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -35,11 +37,13 @@ const Dashboard = () => {
         
         if (walletsError) throw walletsError;
         
-        const transformedWallets = walletsData.map((wallet: any) => ({
+        // Transform the data to match our Wallet type
+        const transformedWallets: Wallet[] = walletsData.map((wallet: any) => ({
           id: wallet.id,
           name: wallet.name,
           balance: parseFloat(wallet.balance || 0),
           currency: wallet.currency,
+          passwordProtected: wallet.password_protected || false
         }));
         
         setWallets(transformedWallets);
@@ -61,11 +65,11 @@ const Dashboard = () => {
         if (transactionsError) throw transactionsError;
         
         // Transform transactions to activities
-        const transformedActivities = transactionsData.map((transaction: any) => ({
+        const transformedActivities: Activity[] = transactionsData.map((transaction: any) => ({
           id: transaction.id,
           type: transaction.type as Activity['type'],
           amount: parseFloat(transaction.amount),
-          description: `${transaction.type === 'deposit' ? 'Deposit to' : 'Withdrawal from'} ${transaction.wallets.name}`,
+          description: `${transaction.type === 'deposit' ? 'Deposit to' : 'Withdrawal from'} ${transaction.wallets?.name || 'wallet'}`,
           date: new Date(transaction.created_at),
         }));
         

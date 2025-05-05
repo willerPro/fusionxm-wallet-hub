@@ -4,5 +4,10 @@ export interface Wallet {
   name: string;
   balance: number;
   currency: string;
-  passwordProtected: boolean;
+  passwordProtected?: boolean;
+  password_protected?: boolean; // Database field name
+  backup_key?: string;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
 }

@@ -1,9 +1,8 @@
-
 import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Wallet, Users, PieChart, ShieldCheck, TrendingUp, Rocket, BriefCase, CircleDollarSign } from "lucide-react";
+import { Wallet, Users, PieChart, ShieldCheck, TrendingUp, Rocket, Briefcase, CircleDollarSign } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
