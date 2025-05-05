@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { QrCode } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import QRCode from 'react-qr-code';
 
 interface QRCodeDisplayProps {
   walletAddress: string;
@@ -19,7 +20,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ walletAddress, coinType }
     setHasCopied(true);
     toast({
       title: "Address Copied",
-      description: "TRC20 address has been copied to clipboard.",
+      description: `${coinType} TRC20 address has been copied to clipboard.`,
     });
     
     setTimeout(() => setHasCopied(false), 3000);
@@ -29,8 +30,14 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ walletAddress, coinType }
     <Card className="border-2 border-dashed p-4">
       <CardContent className="flex flex-col items-center pt-6 space-y-4">
         <div className="p-4 bg-white border rounded-lg">
-          {/* Simple QR code visualization using the lucide icon */}
-          <QrCode size={160} />
+          {/* Using react-qr-code to display the actual QR code */}
+          <QRCode 
+            value={walletAddress}
+            size={160}
+            level="H"
+            fgColor="#000000"
+            bgColor="#FFFFFF"
+          />
         </div>
         
         <div className="text-center">
@@ -42,9 +49,10 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ walletAddress, coinType }
         
         <Button 
           variant="outline"
-          className="w-full"
+          className="w-full flex items-center justify-center"
           onClick={copyAddressToClipboard}
         >
+          <Copy className="mr-2 h-4 w-4" />
           {hasCopied ? "Copied!" : "Copy Address"}
         </Button>
         
