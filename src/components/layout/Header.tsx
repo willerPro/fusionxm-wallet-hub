@@ -35,7 +35,7 @@ const Header = () => {
       case "/withdraw":
         return "Withdraw";
       default:
-        return "FusionXM";
+        return "NEXORAVEST";
     }
   };
 

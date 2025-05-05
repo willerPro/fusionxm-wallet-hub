@@ -11,10 +11,10 @@ const Login = () => {
       <div className={`mb-8 text-center ${isMobile ? 'w-full' : 'max-w-md'}`}>
         <img 
           src="https://i.imgur.com/ZE0BXbI.png" 
-          alt="FusionXM Logo" 
+          alt="NEXORAVEST Logo" 
           className="h-20 mb-4 mx-auto animate-fade-in"
         />
-        <h1 className="text-3xl font-bold text-primary">FusionXM</h1>
+        <h1 className="text-3xl font-bold text-primary">NEXORAVEST</h1>
         <p className="text-gray-600 mt-1">Investment Management Platform</p>
         <p className="text-sm text-gray-500 mt-3 max-w-md italic mx-auto">
           Bold and visionary<br />
