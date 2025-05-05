@@ -9,6 +9,53 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      bots: {
+        Row: {
+          amount: number
+          bot_type: string
+          created_at: string
+          duration: number
+          id: string
+          profit_target: number
+          status: string
+          updated_at: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          bot_type: string
+          created_at?: string
+          duration: number
+          id?: string
+          profit_target: number
+          status?: string
+          updated_at?: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          bot_type?: string
+          created_at?: string
+          duration?: number
+          id?: string
+          profit_target?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bots_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crypto_transactions: {
         Row: {
           address: string

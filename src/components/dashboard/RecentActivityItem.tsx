@@ -7,11 +7,11 @@ const RecentActivityItem = ({ activity }: { activity: Activity }) => {
     switch (activity.type) {
       case "deposit":
         return "↑";
-      case "withdraw":
+      case "withdrawal":
         return "↓";
-      case "receive":
+      case "received":
         return "+";
-      case "send":
+      case "sent":
         return "-";
       case "crypto_send":
         return "⇒";
@@ -25,11 +25,11 @@ const RecentActivityItem = ({ activity }: { activity: Activity }) => {
   const getActivityColor = () => {
     switch (activity.type) {
       case "deposit":
-      case "receive":
+      case "received":
       case "crypto_receive":
         return "text-green-500";
-      case "withdraw":
-      case "send":
+      case "withdrawal":
+      case "sent":
       case "crypto_send":
         return "text-red-500";
       default:

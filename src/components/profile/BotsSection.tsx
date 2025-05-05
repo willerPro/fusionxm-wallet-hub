@@ -64,8 +64,22 @@ const BotsSection = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      
+      // Transform data to match Bot interface if needed
+      const botsData = data.map((bot: any) => ({
+        id: bot.id,
+        user_id: bot.user_id,
+        wallet_id: bot.wallet_id,
+        bot_type: bot.bot_type as BotType,
+        duration: bot.duration,
+        profit_target: bot.profit_target,
+        amount: bot.amount,
+        status: bot.status,
+        created_at: bot.created_at,
+        updated_at: bot.updated_at
+      }));
 
-      setBots(data as Bot[]);
+      setBots(botsData);
     } catch (error) {
       console.error("Error fetching bots:", error);
       toast({

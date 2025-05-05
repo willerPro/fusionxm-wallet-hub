@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from '@/integrations/supabase/client';
 import { Wallet } from '@/types/wallet';
 import { BotType } from '@/types/bot';
+import { useAuth } from '@/components/auth/AuthContext';
 
 export interface BotFormProps {
   onSubmit: (botData: {
@@ -22,6 +23,7 @@ export interface BotFormProps {
 }
 
 const BotForm: React.FC<BotFormProps> = ({ onSubmit, onCancel }) => {
+  const { user } = useAuth();
   const [walletId, setWalletId] = useState<string>('');
   const [botType, setBotType] = useState<BotType>('binary');
   const [duration, setDuration] = useState<number>(1);
@@ -31,10 +33,13 @@ const BotForm: React.FC<BotFormProps> = ({ onSubmit, onCancel }) => {
 
   useEffect(() => {
     const fetchWallets = async () => {
+      if (!user) return;
+      
       try {
         const { data, error } = await supabase
           .from("wallets")
-          .select("*");
+          .select("*")
+          .eq("user_id", user.id);
 
         if (error) throw error;
 
@@ -54,7 +59,7 @@ const BotForm: React.FC<BotFormProps> = ({ onSubmit, onCancel }) => {
     };
 
     fetchWallets();
-  }, []);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

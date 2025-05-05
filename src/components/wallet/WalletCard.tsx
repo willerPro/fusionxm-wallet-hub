@@ -1,129 +1,131 @@
-
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Wallet } from "@/types/wallet";
+import { Wallet } from '@/types/wallet';
+import { deleteWallet as deleteWalletAction } from "@/actions/wallet-actions";
+import { useTransition } from 'react';
 
 interface WalletCardProps {
-  walletId: string;
-  onDelete: (walletId: string) => void;
-  refetchWallets: () => Promise<void>;
+  wallet: Wallet;
+  onView?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onClick?: () => void;
 }
 
-const WalletCard: React.FC<WalletCardProps> = ({ walletId, onDelete, refetchWallets }) => {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [wallet, setWallet] = useState<Wallet | null>(null);
+const WalletCard: React.FC<WalletCardProps> = ({
+  wallet,
+  onView,
+  onDelete,
+  onClick,
+}) => {
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+  const [deleteConfirmation, setDeleteConfirmation] = useState(false);
 
-  // Fetch wallet details
-  useEffect(() => {
-    const fetchWallet = async () => {
+  const handleDelete = (walletId: string) => {
+    setDeleteConfirmation(true);
+    startTransition(async () => {
       try {
-        const { data, error } = await supabase
-          .from('wallets')
-          .select('*')
-          .eq('id', walletId)
-          .single();
-        
-        if (error) throw error;
-        
-        setWallet({
-          id: data.id,
-          name: data.name,
-          balance: parseFloat(data.balance || 0),
-          currency: data.currency,
-          passwordProtected: data.password_protected || false
+        await deleteWalletAction(walletId);
+        toast({
+          title: "Wallet deleted",
+          description: "Your wallet has been successfully deleted.",
         });
-      } catch (error) {
-        console.error("Error fetching wallet details:", error);
+        if (onDelete) {
+          onDelete(walletId);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error deleting wallet",
+          description: error.message || "Failed to delete wallet. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setDeleteConfirmation(false);
       }
-    };
-    
-    fetchWallet();
-  }, [walletId]);
-
-  const handleDelete = async () => {
-    try {
-      const { error } = await supabase.from('wallets').delete().eq('id', walletId);
-
-      if (error) {
-        throw error;
-      }
-
-      onDelete(walletId);
-      toast({
-        title: "Wallet deleted",
-        description: "Your wallet has been deleted successfully.",
-      });
-    } catch (error: any) {
-      console.error("Error deleting wallet:", error);
-      toast({
-        title: "Error deleting wallet",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleteDialogOpen(false);
-    }
+    });
   };
 
   return (
-    <Card className="bg-white shadow-md rounded-md">
-      <CardContent className="p-4">
-        <div className="flex flex-col space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">{wallet?.name || `Wallet ${walletId.slice(0, 8)}`}</h3>
-              <p className="text-gray-600">{wallet?.currency || 'USD'} {wallet?.balance?.toFixed(2) || '0.00'}</p>
-            </div>
-            <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
+    <Card onClick={onClick} className="hover:shadow-md transition-shadow cursor-pointer">
+      <CardHeader className="flex items-center space-x-4">
+        <Avatar>
+          <AvatarImage src={`https://avatars.dicebear.com/api/pixel-art/${wallet.name}.svg`} />
+          <AvatarFallback>{wallet.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+          <h2 className="text-lg font-semibold">{wallet.name}</h2>
+          <p className="text-sm text-gray-500">{wallet.currency}</p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => onView ? onView(wallet.id) : navigate(`/wallets/${wallet.id}`)}>
+              <Eye className="h-4 w-4 mr-2" />
+              View
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate(`/wallets/edit/${wallet.id}`)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-red-500 focus:bg-red-50 hover:bg-red-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(wallet.id.toString());
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
               Delete
-            </Button>
-          </div>
-          
-          <div className="flex space-x-2 pt-2">
-            <Button variant="outline" size="sm" asChild className="flex-1">
-              <Link to={`/deposit?walletId=${walletId}`}>Deposit</Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild className="flex-1">
-              <Link to={`/withdraw?walletId=${walletId}`}>Withdraw</Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild className="flex-1">
-              <Link to="/crypto">Crypto</Link>
-            </Button>
-          </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-1">
+          <p className="text-xl font-bold">
+            {wallet.balance ? wallet.balance.toFixed(2) : '0.00'} {wallet.currency}
+          </p>
+          <p className="text-sm text-gray-500">Available Balance</p>
         </div>
       </CardContent>
-
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Are you absolutely sure?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. This will permanently delete your wallet
-              and remove your data from our servers.
-            </DialogDescription>
-          </DialogHeader>
-          <Alert variant="destructive">
-            <AlertDescription>
-              Deleting this wallet will remove all associated data.
-            </AlertDescription>
-          </Alert>
-          <div className="flex items-center justify-end space-x-2">
-            <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Delete Wallet
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CardFooter className="justify-between">
+        <Button variant="ghost">
+          View Transactions
+        </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(wallet.id.toString());
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
+              </Button>
+      </CardFooter>
     </Card>
   );
 };
