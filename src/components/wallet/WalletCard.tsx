@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ const WalletCard: React.FC<WalletCardProps> = ({ walletId, onDelete, refetchWall
   const { toast } = useToast();
 
   // Fetch wallet details
-  useState(() => {
+  useEffect(() => {
     const fetchWallet = async () => {
       try {
         const { data, error } = await supabase
@@ -45,7 +45,7 @@ const WalletCard: React.FC<WalletCardProps> = ({ walletId, onDelete, refetchWall
     };
     
     fetchWallet();
-  });
+  }, [walletId]);
 
   const handleDelete = async () => {
     try {
