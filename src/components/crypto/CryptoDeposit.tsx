@@ -155,11 +155,7 @@ const CryptoDeposit: React.FC<CryptoDepositProps> = ({ wallets, onSuccess }) => 
           )}
         </Button>
         
-        <div className="bg-yellow-50 p-3 rounded-md">
-          <p className="text-sm text-yellow-800">
-            This is a demo application. In a real application, deposits would be automatically detected by monitoring the blockchain.
-          </p>
-        </div>
+        {/* Removed the demo application message */}
       </CardContent>
     </Card>
   );

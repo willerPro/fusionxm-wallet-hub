@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -215,12 +214,6 @@ const Deposit = () => {
                     placeholder="0.00"
                   />
                 </div>
-              </div>
-              
-              <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-600">
-                <p>
-                  This is a demo application. No actual money will be transferred.
-                </p>
               </div>
             </>
           )}
