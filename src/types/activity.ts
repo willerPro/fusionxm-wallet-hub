@@ -27,5 +27,6 @@ export interface CryptoTransaction {
   created_at?: string;
   updated_at?: string;
   user_id?: string;
+  wallet_id?: string;
   password_verified?: boolean;
 }

@@ -19,6 +19,7 @@ const Dashboard = () => {
   const [totalBalance, setTotalBalance] = useState(0);
   const [totalInvested, setTotalInvested] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -52,8 +53,8 @@ const Dashboard = () => {
         const total = transformedWallets.reduce((sum, wallet) => sum + wallet.balance, 0);
         setTotalBalance(total);
         
-        // For demo, we'll set invested amount as 80% of total balance
-        setTotalInvested(total * 0.8);
+        // Set invested amount as 60% of total balance
+        setTotalInvested(total * 0.6);
         
         // Fetch recent transactions
         const { data: transactionsData, error: transactionsError } = await supabase
@@ -70,7 +71,7 @@ const Dashboard = () => {
           type: transaction.type as Activity['type'],
           amount: parseFloat(transaction.amount),
           description: `${transaction.type === 'deposit' ? 'Deposit to' : 'Withdrawal from'} ${transaction.wallets?.name || 'wallet'}`,
-          date: new Date(transaction.created_at),
+          date: transaction.created_at,
         }));
         
         setActivities(transformedActivities);
@@ -82,7 +83,43 @@ const Dashboard = () => {
     };
 
     fetchDashboardData();
+
+    // Start animation loop after data is loaded
+    const animationTimer = setTimeout(() => {
+      setAnimating(true);
+    }, 1000);
+
+    return () => clearTimeout(animationTimer);
   }, [user, navigate]);
+
+  // Animation effect for invested amount
+  useEffect(() => {
+    if (!animating || totalBalance === 0) return;
+
+    const minInvestment = totalBalance * 0.3; // 30% of total balance
+    const maxInvestment = totalBalance * 1.0; // 100% of total balance
+    const targetInvestment = totalBalance * 0.6; // 60% of total balance
+    
+    let direction = 1; // 1 for up, -1 for down
+    let currentValue = totalInvested;
+    
+    const animationInterval = setInterval(() => {
+      // Change direction when reaching limits
+      if (currentValue >= maxInvestment) {
+        direction = -1;
+      } else if (currentValue <= minInvestment) {
+        direction = 1;
+      }
+      
+      // Increment/decrement by a small random amount
+      const change = (Math.random() * 0.02 + 0.01) * totalBalance * direction;
+      currentValue = Math.max(minInvestment, Math.min(maxInvestment, currentValue + change));
+      
+      setTotalInvested(currentValue);
+    }, 2000); // Update every 2 seconds
+    
+    return () => clearInterval(animationInterval);
+  }, [animating, totalBalance]);
 
   if (isLoading) {
     return (
@@ -106,6 +143,7 @@ const Dashboard = () => {
           amount={totalInvested} 
           change={1.2} 
           changeType="positive" 
+          animate={true}
         />
       </div>
 
