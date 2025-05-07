@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,9 @@ import { useAuth } from "@/components/auth/AuthContext";
 import { Loader2, ArrowRight, Plus } from "lucide-react";
 import { Wallet } from "@/types/wallet";
 import { Activity } from "@/types/activity";
+import { toast } from "@/components/ui/sonner";
+
+const ANIMATION_STATE_KEY = "investmentAnimationState";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -20,6 +22,21 @@ const Dashboard = () => {
   const [totalInvested, setTotalInvested] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [animating, setAnimating] = useState(false);
+
+  // Load saved animation state from localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem(ANIMATION_STATE_KEY);
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        if (parsedState.totalInvested && !isNaN(parsedState.totalInvested)) {
+          setTotalInvested(parsedState.totalInvested);
+        }
+      } catch (error) {
+        console.error("Error parsing saved animation state:", error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -53,8 +70,11 @@ const Dashboard = () => {
         const total = transformedWallets.reduce((sum, wallet) => sum + wallet.balance, 0);
         setTotalBalance(total);
         
-        // Set invested amount as 60% of total balance
-        setTotalInvested(total * 0.6);
+        // Only set initial invested amount if no saved value exists
+        const savedState = localStorage.getItem(ANIMATION_STATE_KEY);
+        if (!savedState && total > 0) {
+          setTotalInvested(total * 0.6); // Initial 60% of total balance
+        }
         
         // Fetch recent transactions
         const { data: transactionsData, error: transactionsError } = await supabase
@@ -77,6 +97,7 @@ const Dashboard = () => {
         setActivities(transformedActivities);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+        toast("Error loading dashboard data. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -92,7 +113,7 @@ const Dashboard = () => {
     return () => clearTimeout(animationTimer);
   }, [user, navigate]);
 
-  // Animation effect for invested amount
+  // Animation effect for invested amount with localStorage persistence
   useEffect(() => {
     if (!animating || totalBalance === 0) return;
 
@@ -102,6 +123,11 @@ const Dashboard = () => {
     
     let direction = 1; // 1 for up, -1 for down
     let currentValue = totalInvested;
+    
+    // Determine initial direction based on current value
+    if (currentValue >= targetInvestment) {
+      direction = -1;
+    }
     
     const animationInterval = setInterval(() => {
       // Change direction when reaching limits
@@ -113,9 +139,21 @@ const Dashboard = () => {
       
       // Increment/decrement by a small random amount
       const change = (Math.random() * 0.02 + 0.01) * totalBalance * direction;
-      currentValue = Math.max(minInvestment, Math.min(maxInvestment, currentValue + change));
+      const newValue = Math.max(minInvestment, Math.min(maxInvestment, currentValue + change));
       
-      setTotalInvested(currentValue);
+      setTotalInvested(newValue);
+      
+      // Save current animation state to localStorage
+      try {
+        localStorage.setItem(ANIMATION_STATE_KEY, JSON.stringify({
+          totalInvested: newValue,
+          lastUpdated: new Date().toISOString()
+        }));
+      } catch (error) {
+        console.error("Error saving animation state:", error);
+      }
+      
+      currentValue = newValue;
     }, 2000); // Update every 2 seconds
     
     return () => clearInterval(animationInterval);
