@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, CreditCard, Loader2 } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
 import { Separator } from "@/components/ui/separator";
@@ -52,10 +52,8 @@ const TransactionDetails = () => {
         if (error) throw error;
         
         if (!data) {
-          toast({
-            title: "Transaction not found",
-            description: "The requested transaction could not be found.",
-            variant: "destructive",
+          toast("Transaction not found", {
+            description: "The requested transaction could not be found."
           });
           navigate('/dashboard');
           return;
@@ -63,8 +61,8 @@ const TransactionDetails = () => {
 
         setTransaction({
           id: data.id,
-          type: data.type,
-          amount: parseFloat(data.amount),
+          type: data.type as "deposit" | "withdrawal",
+          amount: data.amount,
           status: data.status,
           created_at: data.created_at,
           wallet_name: data.wallets.name,
@@ -72,10 +70,8 @@ const TransactionDetails = () => {
         });
       } catch (error) {
         console.error("Error fetching transaction:", error);
-        toast({
-          title: "Error loading transaction",
-          description: "There was a problem loading the transaction details.",
-          variant: "destructive",
+        toast("Error loading transaction", {
+          description: "There was a problem loading the transaction details."
         });
       } finally {
         setIsLoading(false);

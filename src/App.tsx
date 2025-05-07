@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Wallets from "./pages/Wallets";
+import WalletDetails from "./pages/WalletDetails";
 import Investors from "./pages/Investors";
 import Packages from "./pages/Packages";
 import Profile from "./pages/Profile";
@@ -39,6 +40,7 @@ const App = () => {
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/wallets" element={<Wallets />} />
+                <Route path="/wallets/:id" element={<WalletDetails />} />
                 <Route path="/investors" element={<Investors />} />
                 <Route path="/packages" element={<Packages />} />
                 <Route path="/profile" element={<Profile />} />
