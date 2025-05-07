@@ -1,71 +1,38 @@
 
-import { Activity } from "@/types/activity";
-import { formatDistanceToNow, parseISO } from "date-fns";
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Activity } from '@/types/activity';
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 
-const RecentActivityItem = ({ activity }: { activity: Activity }) => {
-  const getActivityIcon = () => {
-    switch (activity.type) {
-      case "deposit":
-        return "↑";
-      case "withdrawal":
-        return "↓";
-      case "received":
-        return "+";
-      case "sent":
-        return "-";
-      case "crypto_send":
-        return "⇒";
-      case "crypto_receive":
-        return "⇐";
-      default:
-        return "○";
-    }
-  };
+interface RecentActivityItemProps {
+  activity: Activity;
+}
 
-  const getActivityColor = () => {
-    switch (activity.type) {
-      case "deposit":
-      case "received":
-      case "crypto_receive":
-        return "text-green-500";
-      case "withdrawal":
-      case "sent":
-      case "crypto_send":
-        return "text-red-500";
-      default:
-        return "text-gray-500";
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return formatDistanceToNow(parseISO(dateString), { addSuffix: true });
-    } catch (error) {
-      // Fallback to the original date string if parsing fails
-      return dateString;
-    }
-  };
-
+const RecentActivityItem = ({ activity }: RecentActivityItemProps) => {
+  const isDeposit = activity.type === 'deposit';
+  const formattedDate = new Date(activity.date).toLocaleDateString();
+  
   return (
-    <div className="flex items-center py-3 border-b border-gray-100">
-      <div
-        className={`w-8 h-8 rounded-full flex items-center justify-center ${getActivityColor()} bg-opacity-10 mr-3`}
-      >
-        {getActivityIcon()}
+    <Link to={`/transactions/${activity.id}`} className="flex items-center justify-between py-2 px-1 hover:bg-gray-100 rounded-md transition-colors">
+      <div className="flex items-center">
+        <div className={`rounded-full p-1 mr-3 ${isDeposit ? 'bg-green-100' : 'bg-orange-100'}`}>
+          {isDeposit ? (
+            <ArrowDownRight className="h-4 w-4 text-green-600" />
+          ) : (
+            <ArrowUpRight className="h-4 w-4 text-orange-600" />
+          )}
+        </div>
+        <div>
+          <p className="text-sm font-medium">{activity.description}</p>
+          <p className="text-xs text-gray-500">{formattedDate}</p>
+        </div>
       </div>
-      <div className="flex-1">
-        <p className="text-sm font-medium">{activity.description}</p>
-        <p className="text-xs text-gray-500">
-          {formatDate(activity.date)}
+      <div>
+        <p className={`text-sm font-medium ${isDeposit ? 'text-green-600' : 'text-orange-600'}`}>
+          {isDeposit ? '+' : '-'}${activity.amount.toFixed(2)}
         </p>
       </div>
-      <div className={`text-right ${getActivityColor()}`}>
-        <p className="text-sm font-semibold">
-          {activity.amount > 0 ? "+" : ""}
-          {activity.amount.toFixed(2)}
-        </p>
-      </div>
-    </div>
+    </Link>
   );
 };
 

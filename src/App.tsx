@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import Deposit from "./pages/Deposit";
 import Withdraw from "./pages/Withdraw";
 import CryptoTransactions from "./pages/CryptoTransactions";
+import TransactionDetails from "./pages/TransactionDetails";
 import MainLayout from "./components/layout/MainLayout";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./components/auth/AuthContext";
@@ -44,6 +45,7 @@ const App = () => {
                 <Route path="/deposit" element={<Deposit />} />
                 <Route path="/withdraw" element={<Withdraw />} />
                 <Route path="/crypto" element={<CryptoTransactions />} />
+                <Route path="/transactions/:id" element={<TransactionDetails />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </MainLayout>
