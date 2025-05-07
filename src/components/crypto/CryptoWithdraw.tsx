@@ -1,288 +1,228 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { AlertCircle, Loader2, Wallet } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Wallet as WalletType } from '@/types/wallet';
-import { useAuth } from '@/components/auth/AuthContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/components/auth/AuthContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CryptoWithdrawProps {
-  wallets: WalletType[];
-  onSuccess: () => void;
+  onClose: () => void;
+  walletId: string;
 }
 
-const CryptoWithdraw: React.FC<CryptoWithdrawProps> = ({ wallets, onSuccess }) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [selectedWalletId, setSelectedWalletId] = useState<string>("");
-  const [coinType, setCoinType] = useState<"USDT" | "TRX">("USDT");
-  const [amount, setAmount] = useState<string>("");
-  const [address, setAddress] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+interface WithdrawFormData {
+  amount: string;
+  address: string;
+}
 
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (/^\d*\.?\d*$/.test(value) || value === '') {
-      setAmount(value);
-    }
+const CryptoWithdraw = ({ onClose, walletId }: CryptoWithdrawProps) => {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [formData, setFormData] = useState<WithdrawFormData>({
+    amount: '',
+    address: '',
+  });
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('BTC');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prevData => ({
+      ...prevData,
+      [name]: value,
+    }));
   };
 
-  const selectedWallet = wallets.find(w => w.id === selectedWalletId);
-
-  const handleInitiateWithdraw = () => {
-    if (!selectedWalletId || !amount || !address) {
+  const handleWithdraw = async (formData: WithdrawFormData) => {
+    if (!user) {
       toast({
-        title: "Missing Information",
+        title: "Not authenticated",
+        description: "You must be logged in to withdraw.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.amount || !formData.address) {
+      toast({
+        title: "Missing fields",
         description: "Please fill in all fields.",
         variant: "destructive",
       });
       return;
     }
 
-    const numericAmount = parseFloat(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) {
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount <= 0) {
       toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount.",
+        title: "Invalid amount",
+        description: "Please enter a valid amount to withdraw.",
         variant: "destructive",
       });
       return;
     }
 
-    if (selectedWallet && numericAmount > selectedWallet.balance) {
-      toast({
-        title: "Insufficient Balance",
-        description: "The amount exceeds your wallet balance.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Show password confirmation dialog for all withdrawals
-    setIsPasswordDialogOpen(true);
-  };
-
-  const handleWithdraw = async () => {
-    if (!user || !selectedWalletId || !amount || !address || !password) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields including password.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const numericAmount = parseFloat(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (selectedWallet && numericAmount > selectedWallet.balance) {
-      toast({
-        title: "Insufficient Balance",
-        description: "The amount exceeds your wallet balance.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
+    setIsLoading(true);
 
     try {
-      // In a real app, you would verify the password here
-      // For this demo, we'll just check if the password field isn't empty
-      if (!password) {
-        throw new Error("Password is required");
+      // Check user's wallet balance
+      const { data: walletData, error: walletError } = await supabase
+        .from('wallets')
+        .select('balance')
+        .eq('id', walletId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (walletError) throw walletError;
+
+      if (!walletData) {
+        toast({
+          title: "Wallet not found",
+          description: "Could not find the specified wallet.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Create the transaction record
-      const { data: transactionData, error: transactionError } = await supabase
-        .from("crypto_transactions")
-        .insert({
-          wallet_id: selectedWalletId,
-          user_id: user.id,
-          type: "send",
-          coin_type: coinType,
-          amount: numericAmount,
-          address: address,
-          status: "completed",
-          password_verified: true
-        })
-        .select();
-      
-      if (transactionError) throw transactionError;
-      
-      // Update wallet balance
-      const { error: updateError } = await supabase
-        .rpc('decrement_balance', {
-          wallet_id_param: selectedWalletId,
-          amount_param: numericAmount
+      const walletBalance = walletData.balance;
+
+      if (amount > walletBalance) {
+        toast({
+          title: "Insufficient balance",
+          description: "You do not have enough funds in your wallet to complete this withdrawal.",
+          variant: "destructive",
         });
-      
-      if (updateError) throw updateError;
-      
+        return;
+      }
+
+      // Prepare the transaction data
+      const transactionData = {
+        user_id: user.id,
+        wallet_id: walletId,
+        amount: amount,
+        type: 'withdraw',
+        status: 'pending',
+        to_address: formData.address,
+        description: `Withdrawal to ${formData.address}`,
+        crypto_currency: selectedCurrency,
+      };
+
+      // Create the withdrawal transaction
+      const { data: transaction, error: transactionError } = await supabase
+        .from('transactions')
+        .insert(transactionData)
+        .select()
+        .single();
+
+      if (transactionError) {
+        console.error("Transaction creation error:", transactionError);
+        toast({
+          title: "Transaction Failed",
+          description: "Failed to create the withdrawal transaction.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update the wallet balance
+      const { error: updateError } = await supabase
+        .from('wallets')
+        .update({ balance: walletBalance - amount })
+        .eq('id', walletId)
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error("Wallet update error:", updateError);
+        toast({
+          title: "Withdrawal Failed",
+          description: "Failed to update wallet balance. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
-        title: "Withdrawal Successful",
-        description: `Your ${coinType} has been sent to the specified address.`,
+        title: "Withdrawal initiated",
+        description: `Successfully initiated withdrawal of ${amount} ${selectedCurrency} to ${formData.address}.`,
       });
-      
-      // Reset form and close dialog
-      setAmount("");
-      setAddress("");
-      setPassword("");
-      setIsPasswordDialogOpen(false);
-      onSuccess();
-    } catch (error: any) {
-      console.error("Error processing withdrawal:", error);
+      onClose();
+    } catch (error) {
+      console.error("Withdrawal error:", error);
       toast({
-        title: "Transaction Failed",
-        description: error.message || "There was a problem processing your withdrawal.",
+        title: "Withdrawal Failed",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Withdraw Crypto</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Select Wallet</Label>
-            <Select value={selectedWalletId} onValueChange={setSelectedWalletId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select wallet" />
-              </SelectTrigger>
-              <SelectContent>
-                {wallets.map((wallet) => (
-                  <SelectItem key={wallet.id} value={wallet.id}>
-                    {wallet.name} ({wallet.currency} {wallet.balance.toFixed(2)})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {selectedWallet && (
-            <div className="p-3 bg-blue-50 rounded-md flex items-center space-x-2">
-              <Wallet className="h-5 w-5 text-blue-500" />
-              <p className="text-sm text-blue-600">
-                Available balance: {selectedWallet.balance.toFixed(2)} {selectedWallet.currency}
-              </p>
-            </div>
-          )}
-          
-          <div className="space-y-2">
-            <Label>Coin Type</Label>
-            <Select value={coinType} onValueChange={(value: "USDT" | "TRX") => setCoinType(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="USDT">USDT (TRC20)</SelectItem>
-                <SelectItem value="TRX">TRX</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Amount</Label>
-            <Input
-              type="text"
-              value={amount}
-              onChange={handleAmountChange}
-              placeholder="0.00"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Recipient Address</Label>
-            <Input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="TRC20 Wallet Address"
-            />
-          </div>
-          
-          <Button 
-            className="w-full"
-            onClick={handleInitiateWithdraw}
-            disabled={isSubmitting || !selectedWalletId || !amount || !address}
-          >
-            Withdraw
-          </Button>
-          
-          <div className="bg-yellow-50 p-3 rounded-md flex items-start space-x-2">
-            <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
-            <p className="text-sm text-yellow-800">
-              All withdrawals require password confirmation. Please enter your wallet password when prompted.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Password Confirmation</DialogTitle>
-            <DialogDescription>
-              Please enter your wallet password to authorize this withdrawal.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-3">
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your wallet password"
-              />
-            </div>
-            
-            <div className="bg-blue-50 p-3 rounded-md">
-              <p className="text-sm text-blue-700">
-                Withdrawing {amount} {coinType} to address {address.slice(0, 10)}...{address.slice(-6)}
-              </p>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setIsPasswordDialogOpen(false);
-              setPassword("");
-            }}>
-              Cancel
-            </Button>
-            <Button onClick={handleWithdraw} disabled={isSubmitting || !password}>
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Confirm Withdrawal
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Crypto Withdrawal</DialogTitle>
+        <DialogDescription>
+          Enter the amount and address to withdraw to.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="grid gap-4 py-4">
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="amount" className="text-right">
+            Amount
+          </Label>
+          <Input
+            type="number"
+            id="amount"
+            name="amount"
+            placeholder="0.00"
+            className="col-span-3"
+            value={formData.amount}
+            onChange={handleInputChange}
+          />
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="currency" className="text-right">
+            Currency
+          </Label>
+          <Select onValueChange={setSelectedCurrency} defaultValue={selectedCurrency}>
+            <SelectTrigger className="col-span-3">
+              <SelectValue placeholder="Select a currency" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BTC">BTC</SelectItem>
+              <SelectItem value="ETH">ETH</SelectItem>
+              {/* Add more currencies here */}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="address" className="text-right">
+            Address
+          </Label>
+          <Input
+            type="text"
+            id="address"
+            name="address"
+            placeholder="Enter wallet address"
+            className="col-span-3"
+            value={formData.address}
+            onChange={handleInputChange}
+          />
+        </div>
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="button" onClick={() => handleWithdraw(formData)} disabled={isLoading}>
+          {isLoading ? "Withdrawing..." : "Withdraw"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   );
 };
 
