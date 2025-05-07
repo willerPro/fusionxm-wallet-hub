@@ -16,10 +16,6 @@ const SignUp = () => {
         />
         <h1 className="text-3xl font-bold text-primary">NEXORAVEST</h1>
         <p className="text-gray-600 mt-1">Create Your Investment Account</p>
-        <p className="text-sm text-gray-500 mt-3 max-w-md italic mx-auto">
-          Bold and visionary<br />
-          Enter the future of wealth and limitless opportunity
-        </p>
       </div>
       <SignupForm />
     </div>

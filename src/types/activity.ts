@@ -20,4 +20,12 @@ export interface CryptoTransaction {
   date: string;
   hash?: string;
   walletId?: string;
+  
+  // Additional properties needed by the app
+  coin_type?: string;
+  tx_hash?: string;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
+  password_verified?: boolean;
 }
