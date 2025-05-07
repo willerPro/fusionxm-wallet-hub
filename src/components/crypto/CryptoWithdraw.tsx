@@ -127,7 +127,7 @@ const CryptoWithdraw: React.FC<CryptoWithdrawProps> = ({ wallets, onSuccess }) =
       // Update wallet balance
       const { error: updateError } = await supabase
         .rpc('decrement_balance', {
-          wallet_id_param: selectedWalletId.toString(), // Update this line
+          wallet_id_param: selectedWalletId.toString() as string, // Update this line
           amount_param: numericAmount
         });
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -27,8 +26,19 @@ const Investors = () => {
       return;
     }
 
+    // Check if user has permission to access this page
+    if (user.email !== "moisentak@gmail.com") {
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to access this page.",
+        variant: "destructive",
+      });
+      navigate('/profile');
+      return;
+    }
+
     fetchInvestors();
-  }, [user, navigate]);
+  }, [user, navigate, toast]);
   
   const fetchInvestors = async () => {
     if (!user) return;
