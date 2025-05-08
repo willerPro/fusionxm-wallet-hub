@@ -10,4 +10,6 @@ export interface Wallet {
   created_at?: string;
   updated_at?: string;
   user_id?: string;
+  address?: string;
+  network?: string;
 }

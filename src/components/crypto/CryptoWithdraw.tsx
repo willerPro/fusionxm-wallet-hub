@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/components/auth/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { sendHtmlEmail, buildHtmlTemplate } from "@/services/emailService";
 
 interface CryptoWithdrawProps {
   onClose: () => void;
@@ -142,6 +144,30 @@ const CryptoWithdraw = ({ onClose, walletId }: CryptoWithdrawProps) => {
           variant: "destructive",
         });
         return;
+      }
+
+      // Send confirmation email if user email is available
+      try {
+        if (user.email) {
+          const emailContent = buildHtmlTemplate(
+            "Withdrawal Confirmation",
+            `<p>Hello,</p>`,
+            `<p>Your withdrawal request for <strong>${amount} ${selectedCurrency}</strong> has been initiated.</p>`,
+            `<p>Destination address: <code>${formData.address}</code></p>`,
+            `<p>Status: <strong>Pending</strong></p>`,
+            `<p>Transaction ID: <code>${transaction.id}</code></p>`,
+            `<p>We will process your withdrawal as soon as possible. You will receive another email once the withdrawal has been processed.</p>`
+          );
+          
+          await sendHtmlEmail(
+            user.email,
+            `Withdrawal Request: ${amount} ${selectedCurrency}`,
+            emailContent
+          );
+        }
+      } catch (emailError) {
+        console.error("Failed to send confirmation email:", emailError);
+        // Don't fail the transaction if the email fails
       }
 
       toast({
