@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -7,7 +8,7 @@ import { signIn as authSignIn, signUp as authSignUp, signOut as authSignOut } fr
 type AuthContextType = {
   session: Session | null;
   user: User | null;
-  signIn: (email: string, password: string) => Promise<{ error: any | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: any | null, data?: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any | null, userCreated?: boolean }>;
   signOut: () => Promise<void>;
   loading: boolean;

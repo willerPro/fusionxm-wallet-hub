@@ -25,7 +25,7 @@ export const signIn = async (email: string, password: string) => {
       localStorage.setItem("user", JSON.stringify(data.user));
     }
     
-    return { error };
+    return { error, data };
   } catch (error) {
     console.error("Sign in exception:", error);
     return { error };

@@ -51,14 +51,15 @@ const LoginForm = () => {
         return;
       }
       
-      // Success
+      // Success case
       toast({
         title: "Login successful",
         description: "Welcome back! A login notification has been sent to your email.",
         duration: 3000,
       });
       
-      navigate("/dashboard");
+      // Navigation to dashboard happens via AuthContext redirect
+      // No need to manually navigate here as the MainLayout will handle it
     } catch (error: any) {
       console.error("Login exception:", error);
       setErrorMessage(error.message || "An unexpected error occurred");
