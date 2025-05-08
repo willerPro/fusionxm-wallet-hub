@@ -15,7 +15,7 @@ interface SendEmailProps {
  * @param emailData The email data to send
  * @returns A promise that resolves with the function result
  */
-export const sendEmail = async (emailData: SendEmailProps) => {
+const sendEmail = async (emailData: SendEmailProps) => {
   try {
     const { data, error } = await supabase.functions.invoke('send-email', {
       body: emailData,
@@ -40,7 +40,7 @@ export const sendEmail = async (emailData: SendEmailProps) => {
  * @param message Plain text message
  * @returns A promise that resolves with the function result
  */
-export const sendTextEmail = (to: string, subject: string, message: string) => {
+const sendTextEmail = (to: string, subject: string, message: string) => {
   return sendEmail({
     to,
     subject,
@@ -56,7 +56,7 @@ export const sendTextEmail = (to: string, subject: string, message: string) => {
  * @param textFallback Optional plain text fallback
  * @returns A promise that resolves with the function result
  */
-export const sendHtmlEmail = (to: string, subject: string, htmlContent: string, textFallback?: string) => {
+const sendHtmlEmail = (to: string, subject: string, htmlContent: string, textFallback?: string) => {
   return sendEmail({
     to,
     subject,
@@ -80,7 +80,7 @@ const stripHtmlTags = (html: string): string => {
  * @param content Main content sections as HTML strings
  * @returns Complete HTML template as a string
  */
-export const buildHtmlTemplate = (title: string, ...content: string[]): string => {
+const buildHtmlTemplate = (title: string, ...content: string[]): string => {
   return `
     <!DOCTYPE html>
     <html>
@@ -124,4 +124,38 @@ export const buildHtmlTemplate = (title: string, ...content: string[]): string =
       </body>
     </html>
   `;
+};
+
+/**
+ * Sends a withdrawal notification email
+ * @param params Object containing email, amount, coinType and address
+ * @returns A promise that resolves with the function result
+ */
+const sendWithdrawalNotification = async (params: {
+  email: string;
+  amount: number;
+  coinType: string;
+  address: string;
+}) => {
+  const { email, amount, coinType, address } = params;
+  
+  const subject = `Withdrawal Request for ${amount} ${coinType}`;
+  const content = buildHtmlTemplate(
+    'Withdrawal Request Initiated',
+    `<p>Your withdrawal request has been received and is being processed.</p>`,
+    `<p><strong>Amount:</strong> ${amount} ${coinType}</p>`,
+    `<p><strong>Destination Address:</strong> ${address}</p>`,
+    `<p>You will be notified once the transaction has been processed.</p>`
+  );
+  
+  return sendHtmlEmail(email, subject, content);
+};
+
+// Export as an object with all the methods
+export const emailService = {
+  sendEmail,
+  sendTextEmail,
+  sendHtmlEmail,
+  buildHtmlTemplate,
+  sendWithdrawalNotification
 };
