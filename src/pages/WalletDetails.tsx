@@ -9,15 +9,7 @@ import { ArrowLeft, Copy, RefreshCw, Clock, ArrowDown, ArrowUp } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
 import { Wallet } from "@/types/wallet";
-
-interface Transaction {
-  id: string;
-  amount: number;
-  created_at: string;
-  status: string;
-  transaction_type: string;
-  description: string;
-}
+import { Transaction } from "@/types/activity";
 
 const WalletDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -80,7 +72,20 @@ const WalletDetails = () => {
       
       if (error) throw error;
       
-      setTransactions(data || []);
+      // Transform the data to match the Transaction type
+      const transformedTransactions: Transaction[] = (data || []).map(tx => ({
+        id: tx.id,
+        amount: tx.amount,
+        created_at: tx.created_at,
+        status: tx.status,
+        type: tx.type,
+        user_id: tx.user_id,
+        wallet_id: tx.wallet_id,
+        transaction_type: tx.type, // Map 'type' to 'transaction_type'
+        description: `${tx.type === 'deposit' ? 'Deposit to' : 'Withdrawal from'} wallet`
+      }));
+      
+      setTransactions(transformedTransactions);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast({
