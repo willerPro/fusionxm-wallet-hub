@@ -4,19 +4,23 @@ import { useNavigate, useLocation } from "react-router-dom";
 import BottomNavigation from "./BottomNavigation";
 import Header from "./Header";
 import OfflineWarning from "./OfflineWarning";
+import { useAuth } from "../auth/AuthContext";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, loading } = useAuth();
   
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    const publicRoutes = ["/login", "/signup", "/"];
-    
-    if (!user && !publicRoutes.includes(location.pathname)) {
-      navigate("/login");
+    // Only redirect after auth has finished loading
+    if (!loading) {
+      const publicRoutes = ["/login", "/signup", "/"];
+      
+      if (!user && !publicRoutes.includes(location.pathname)) {
+        navigate("/login");
+      }
     }
-  }, [navigate, location.pathname]);
+  }, [navigate, location.pathname, user, loading]);
   
   const isAuthPage = ["/login", "/signup", "/"].includes(location.pathname);
   

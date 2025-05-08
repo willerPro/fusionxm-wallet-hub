@@ -1,9 +1,9 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { sendLoginNotificationEmail } from '@/services/authNotificationService';
 import { signIn as authSignIn, signUp as authSignUp, signOut as authSignOut } from '@/services/authService';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 type AuthContextType = {
   session: Session | null;
@@ -20,6 +20,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Set up the auth state listener first
@@ -37,6 +39,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error("Error in login notification flow:", error);
             // Don't block the auth flow if notification fails
           }
+          
+          // Redirect to dashboard after successful sign in if on login page
+          if (location.pathname === '/login' || location.pathname === '/signup') {
+            navigate('/dashboard');
+          }
         }
         
         // Update localStorage for MainLayout authorization check
@@ -44,6 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.setItem("user", JSON.stringify(currentSession.user));
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem("user");
+          // Redirect to login page after sign out
+          navigate('/login');
         }
       }
     );
@@ -60,6 +69,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Update localStorage for MainLayout authorization check
         if (currentSession?.user) {
           localStorage.setItem("user", JSON.stringify(currentSession.user));
+          
+          // Redirect to dashboard if already logged in and on login page
+          if (location.pathname === '/login' || location.pathname === '/signup') {
+            navigate('/dashboard');
+          }
         } else {
           localStorage.removeItem("user");
         }
@@ -75,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate, location.pathname]);
 
   // Use the extracted auth functions but keep them in context
   const signIn = authSignIn;

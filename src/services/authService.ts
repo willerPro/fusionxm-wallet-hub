@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
  * Sign in a user with email and password
  * @param email User's email
  * @param password User's password
- * @returns Object containing error if any
+ * @returns Object containing error if any and data if successful
  */
 export const signIn = async (email: string, password: string) => {
   try {
@@ -21,11 +21,15 @@ export const signIn = async (email: string, password: string) => {
     
     console.log("Sign in result:", error ? "Error" : "Success");
     
-    if (!error && data?.user) {
+    if (error) {
+      return { error };
+    }
+    
+    if (data?.user) {
       localStorage.setItem("user", JSON.stringify(data.user));
     }
     
-    return { error, data };
+    return { error: null, data };
   } catch (error) {
     console.error("Sign in exception:", error);
     return { error };
