@@ -1,8 +1,7 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
-import { sendEmail } from '@/services/emailService';
+import { emailService } from '@/services/emailService';
 
 type AuthContextType = {
   session: Session | null;
@@ -49,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               // Use the HTML email template
               const htmlContent = buildLoginEmailTemplate(userEmail, formattedDate, location);
               
-              await sendEmail({
+              await emailService.sendEmail({
                 to: userEmail,
                 subject: "New Login Detected - NEXORAVEST",
                 html: htmlContent,
