@@ -54,7 +54,7 @@ const LoginForm = () => {
       // Success
       toast({
         title: "Login successful",
-        description: "Welcome back!",
+        description: "Welcome back! A login notification has been sent to your email.",
         duration: 3000,
       });
       
