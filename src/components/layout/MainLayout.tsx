@@ -15,16 +15,9 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     // Only redirect after auth has finished loading
     if (!loading) {
       const publicRoutes = ["/login", "/signup", "/"];
-      const currentPath = location.pathname;
       
-      // If not authenticated and trying to access protected route, redirect to login
-      if (!user && !publicRoutes.includes(currentPath)) {
+      if (!user && !publicRoutes.includes(location.pathname)) {
         navigate("/login");
-      }
-      
-      // If authenticated and trying to access login/signup, redirect to dashboard
-      if (user && (currentPath === "/login" || currentPath === "/signup")) {
-        navigate("/dashboard");
       }
     }
   }, [navigate, location.pathname, user, loading]);

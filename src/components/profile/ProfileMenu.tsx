@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Settings, Bot, LogOut, User } from "lucide-react";
+import { Settings, Bot, LogOut, User, Users, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -16,7 +16,11 @@ const ProfileMenu = ({ activeTab, onTabChange }: ProfileMenuProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user } = useAuth();
   
+  // Check if user has permission to access restricted pages
+  const hasRestrictedAccess = user?.email === "moisentak@gmail.com";
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     
@@ -40,6 +44,30 @@ const ProfileMenu = ({ activeTab, onTabChange }: ProfileMenuProps) => {
       });
     } finally {
       setIsLoggingOut(false);
+    }
+  };
+
+  const handleNavigateToInvestors = () => {
+    if (hasRestrictedAccess) {
+      navigate('/investors');
+    } else {
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to access this page.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleNavigateToPackages = () => {
+    if (hasRestrictedAccess) {
+      navigate('/packages');
+    } else {
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to access this page.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -68,6 +96,27 @@ const ProfileMenu = ({ activeTab, onTabChange }: ProfileMenuProps) => {
       >
         <Bot className="mr-2 h-4 w-4" />
         Trading Bots
+      </Button>
+      
+      {/* Restricted access menu items */}
+      <Button
+        variant="ghost"
+        className={`justify-start ${!hasRestrictedAccess ? 'opacity-50' : ''}`}
+        onClick={handleNavigateToInvestors}
+      >
+        <Users className="mr-2 h-4 w-4" />
+        Investors
+        {!hasRestrictedAccess && <span className="ml-2 text-xs text-gray-400">(Restricted)</span>}
+      </Button>
+      
+      <Button
+        variant="ghost"
+        className={`justify-start ${!hasRestrictedAccess ? 'opacity-50' : ''}`}
+        onClick={handleNavigateToPackages}
+      >
+        <Package className="mr-2 h-4 w-4" />
+        Packages
+        {!hasRestrictedAccess && <span className="ml-2 text-xs text-gray-400">(Restricted)</span>}
       </Button>
       
       <hr className="my-2" />

@@ -33,7 +33,7 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      const { error, data } = await signIn(email, password);
+      const { error } = await signIn(email, password);
       
       if (error) {
         console.error("Login error:", error);
@@ -51,23 +51,19 @@ const LoginForm = () => {
         return;
       }
       
-      if (data) {
-        // Success - show a success toast
-        toast({
-          title: "Login successful",
-          description: "Welcome back! A login notification has been sent to your email.",
-          duration: 3000,
-        });
-        
-        // Navigate to dashboard after successful login
-        navigate('/dashboard');
-      }
+      // Success - the Auth context will handle navigation
+      // Just show a success toast
+      toast({
+        title: "Login successful",
+        description: "Welcome back! A login notification has been sent to your email.",
+        duration: 3000,
+      });
       
+      // Important: Always reset loading state in all cases
+      setIsLoading(false);
     } catch (error: any) {
       console.error("Login exception:", error);
       setErrorMessage(error.message || "An unexpected error occurred");
-    } finally {
-      // Make sure we always reset loading state
       setIsLoading(false);
     }
   };
