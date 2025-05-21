@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -39,16 +40,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error("Error in login notification flow:", error);
             // Don't block the auth flow if notification fails
           }
-          
-          // Redirect to dashboard after successful sign in if on login page
-          if (location.pathname === '/login' || location.pathname === '/signup') {
-            navigate('/dashboard');
-          }
         }
         
         // Update localStorage for MainLayout authorization check
         if (currentSession?.user) {
           localStorage.setItem("user", JSON.stringify(currentSession.user));
+          
+          // Redirect to dashboard after successful sign in if on login or signup page
+          if (location.pathname === '/login' || location.pathname === '/signup') {
+            navigate('/dashboard');
+          }
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem("user");
           // Redirect to login page after sign out
@@ -69,17 +70,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Update localStorage for MainLayout authorization check
         if (currentSession?.user) {
           localStorage.setItem("user", JSON.stringify(currentSession.user));
-          
-          // Redirect to dashboard if already logged in and on login page
-          if (location.pathname === '/login' || location.pathname === '/signup') {
-            navigate('/dashboard');
-          }
         } else {
           localStorage.removeItem("user");
         }
+        
+        setLoading(false);
       } catch (error) {
         console.error("Error fetching session:", error);
-      } finally {
         setLoading(false);
       }
     };
@@ -91,8 +88,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [navigate, location.pathname]);
 
-  // Use the extracted auth functions but keep them in context
-  const signIn = authSignIn;
+  // Use the extracted auth functions with proper navigation handling
+  const signIn = async (email: string, password: string) => {
+    const result = await authSignIn(email, password);
+    return result;
+  };
+  
   const signUp = authSignUp;
   const signOut = authSignOut;
 
