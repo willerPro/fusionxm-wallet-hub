@@ -214,6 +214,63 @@ export type Database = {
         }
         Relationships: []
       }
+      server_details: {
+        Row: {
+          cores: number | null
+          cpu: string | null
+          cpu_usage: number | null
+          disk_usage: number | null
+          id: string
+          last_update: string
+          load_avg: number | null
+          memory: string | null
+          memory_usage: number | null
+          name: string
+          network_usage: number | null
+          region: string | null
+          status: string
+          storage: string | null
+          updated_at: string
+          uptime: string | null
+        }
+        Insert: {
+          cores?: number | null
+          cpu?: string | null
+          cpu_usage?: number | null
+          disk_usage?: number | null
+          id?: string
+          last_update?: string
+          load_avg?: number | null
+          memory?: string | null
+          memory_usage?: number | null
+          name: string
+          network_usage?: number | null
+          region?: string | null
+          status: string
+          storage?: string | null
+          updated_at?: string
+          uptime?: string | null
+        }
+        Update: {
+          cores?: number | null
+          cpu?: string | null
+          cpu_usage?: number | null
+          disk_usage?: number | null
+          id?: string
+          last_update?: string
+          load_avg?: number | null
+          memory?: string | null
+          memory_usage?: number | null
+          name?: string
+          network_usage?: number | null
+          region?: string | null
+          status?: string
+          storage?: string | null
+          updated_at?: string
+          uptime?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -251,6 +308,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_settings: {
         Row: {
