@@ -23,8 +23,8 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./components/auth/AuthContext";
 
 const App = () => {
-  // Create a new QueryClient instance for each component render
-  const [queryClient] = useState(() => new QueryClient());
+  // Create a new QueryClient instance
+  const queryClient = new QueryClient();
 
   return (
     <BrowserRouter>
