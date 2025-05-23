@@ -6,10 +6,11 @@ import BalanceCard from "@/components/dashboard/BalanceCard";
 import RecentActivityItem from "@/components/dashboard/RecentActivityItem";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
-import { Loader2, ArrowRight, Plus } from "lucide-react";
+import { Loader2, ArrowRight, Plus, AlertTriangle, X } from "lucide-react";
 import { Wallet } from "@/types/wallet";
 import { Activity } from "@/types/activity";
 import { toast } from "@/components/ui/sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const ANIMATION_STATE_KEY = "investmentAnimationState";
 
@@ -22,6 +23,7 @@ const Dashboard = () => {
   const [totalInvested, setTotalInvested] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [animating, setAnimating] = useState(false);
+  const [showWarning, setShowWarning] = useState(true);
 
   // Load saved animation state from localStorage
   useEffect(() => {
@@ -169,6 +171,23 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto p-4 max-w-xl">
+      {showWarning && (
+        <Alert variant="destructive" className="mb-4 bg-amber-50 border-amber-300 text-amber-800">
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+          <AlertDescription className="flex items-center justify-between w-full">
+            <span>Warning: All bots are stopped and unfunded. Some transactions may be lost and untraceable.</span>
+            <Button 
+              variant="ghost" 
+              className="h-6 w-6 p-0 text-amber-500 hover:text-amber-700 hover:bg-transparent" 
+              onClick={() => setShowWarning(false)}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid grid-cols-2 gap-4 mb-6">
         <BalanceCard 
           title="Total Balance" 

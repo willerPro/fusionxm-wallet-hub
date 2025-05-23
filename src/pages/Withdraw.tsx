@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,12 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Loader2, AlertTriangle, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/AuthContext";
 import { Wallet } from "@/types/wallet";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const WITHDRAWAL_FEE = 4; // Fixed $4 fee
 
@@ -27,7 +25,6 @@ const Withdraw = () => {
   const [totalBalance, setTotalBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showWarning, setShowWarning] = useState(true);
   
   useEffect(() => {
     if (!user) {
@@ -193,23 +190,6 @@ const Withdraw = () => {
   
   return (
     <div className="container mx-auto p-4 max-w-md">
-      {showWarning && (
-        <Alert variant="destructive" className="mb-4 bg-amber-50 border-amber-300 text-amber-800">
-          <AlertTriangle className="h-5 w-5 text-amber-500" />
-          <AlertDescription className="flex items-center justify-between w-full">
-            <span>Warning: All bots are stopped and unfunded. Some transactions may be lost and untraceable.</span>
-            <Button 
-              variant="ghost" 
-              className="h-6 w-6 p-0 text-amber-500 hover:text-amber-700 hover:bg-transparent" 
-              onClick={() => setShowWarning(false)}
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-      
       <h2 className="text-2xl font-semibold mb-6">Withdraw Funds</h2>
       
       <Card>
