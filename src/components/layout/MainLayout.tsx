@@ -17,6 +17,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       const publicRoutes = ["/login", "/signup", "/"];
       
       if (!user && !publicRoutes.includes(location.pathname)) {
+        console.log("No user detected, redirecting to login");
         navigate("/login");
       }
     }
@@ -27,7 +28,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen flex flex-col bg-secondary/20">
       <OfflineWarning />
-      <Header />
+      {!isAuthPage && <Header />}
       <main className={`flex-1 ${!isAuthPage ? "pb-16" : ""}`}>
         {children}
       </main>

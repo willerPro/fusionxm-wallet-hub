@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -16,7 +17,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +35,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Send login notification email when user signs in
         if (event === 'SIGNED_IN' && currentSession?.user) {
           try {
-            await sendLoginNotificationEmail(currentSession.user);
+            // Use setTimeout to avoid potential auth deadlocks
+            setTimeout(async () => {
+              try {
+                await sendLoginNotificationEmail(currentSession.user);
+              } catch (error) {
+                console.error("Error in login notification flow:", error);
+              }
+            }, 0);
           } catch (error) {
             console.error("Error in login notification flow:", error);
             // Don't block the auth flow if notification fails
