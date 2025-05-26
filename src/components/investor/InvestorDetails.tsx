@@ -1,17 +1,28 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Wallet, User, Mail, Phone, MapPin, CreditCard } from "lucide-react";
+import { ArrowLeft, Wallet, User, Mail, Phone, MapPin, CreditCard, Trash2 } from "lucide-react";
 import { Investor } from "./InvestorCard";
 import { KycData } from "@/pages/Investors";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface InvestorDetailsProps {
   investor: Investor;
   kycData?: KycData;
   onBack: () => void;
+  onDelete: (investorId: string) => void;
 }
 
 interface WalletData {
@@ -21,9 +32,12 @@ interface WalletData {
   currency: string;
 }
 
-const InvestorDetails = ({ investor, kycData, onBack }: InvestorDetailsProps) => {
+const InvestorDetails = ({ investor, kycData, onBack, onDelete }: InvestorDetailsProps) => {
   const [wallets, setWallets] = useState<WalletData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchInvestorWallets();
@@ -77,13 +91,55 @@ const InvestorDetails = ({ investor, kycData, onBack }: InvestorDetailsProps) =>
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    
+    try {
+      const { error } = await supabase
+        .from('investors')
+        .delete()
+        .eq('id', investor.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Investor deleted",
+        description: `${investor.fullName} has been deleted successfully.`,
+      });
+      
+      onDelete(investor.id);
+      onBack();
+    } catch (error) {
+      console.error("Error deleting investor:", error);
+      toast({
+        title: "Error deleting investor",
+        description: "There was a problem deleting the investor.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft className="h-5 w-5" />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h2 className="text-xl font-semibold">Investor Details</h2>
+        </div>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => setIsDeleteDialogOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
         </Button>
-        <h2 className="text-xl font-semibold">Investor Details</h2>
       </div>
 
       {/* Basic Information */}
@@ -191,6 +247,34 @@ const InvestorDetails = ({ investor, kycData, onBack }: InvestorDetailsProps) =>
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the investor "{investor.fullName}" and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

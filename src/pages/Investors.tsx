@@ -227,6 +227,11 @@ const Investors = () => {
     setViewingInvestor(null);
   };
 
+  const handleDeleteInvestor = (investorId: string) => {
+    setInvestors(investors.filter(investor => investor.id !== investorId));
+    setKycData(kycData.filter(kyc => kyc.investor_id !== investorId));
+  };
+
   const getKycForInvestor = (investorId: string) => {
     return kycData.find(kyc => kyc.investor_id === investorId);
   };
@@ -253,6 +258,7 @@ const Investors = () => {
           investor={viewingInvestor}
           kycData={getKycForInvestor(viewingInvestor.id)}
           onBack={handleBackToList}
+          onDelete={handleDeleteInvestor}
         />
       </div>
     );
