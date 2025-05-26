@@ -77,23 +77,23 @@ const ProfileForm = ({ onSubmit, isLoading, initialData }: ProfileFormProps) => 
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">My Profile</CardTitle>
-        <CardDescription>Update your personal information</CardDescription>
+    <Card className="shadow-sm">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg">My Profile</CardTitle>
+        <CardDescription className="text-sm">Update your personal information</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex justify-center mb-6">
-          <Avatar className="h-24 w-24">
+      <CardContent className="space-y-4">
+        <div className="flex justify-center mb-4">
+          <Avatar className="h-16 w-16 lg:h-20 lg:w-20">
             <AvatarImage src={profile.avatar} />
-            <AvatarFallback className="text-lg bg-primary text-white">
-              {profile.fullName ? getInitials(profile.fullName) : <User className="h-10 w-10" />}
+            <AvatarFallback className="text-sm lg:text-base bg-primary text-white">
+              {profile.fullName ? getInitials(profile.fullName) : <User className="h-6 w-6 lg:h-8 lg:w-8" />}
             </AvatarFallback>
           </Avatar>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label htmlFor="fullName" className="text-sm font-medium">
               Full Name
             </label>
@@ -104,9 +104,10 @@ const ProfileForm = ({ onSubmit, isLoading, initialData }: ProfileFormProps) => 
               value={profile.fullName}
               onChange={handleChange}
               required
+              className="h-9"
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label htmlFor="email" className="text-sm font-medium">
               Email Address
             </label>
@@ -118,9 +119,10 @@ const ProfileForm = ({ onSubmit, isLoading, initialData }: ProfileFormProps) => 
               value={profile.email}
               onChange={handleChange}
               required
+              className="h-9"
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label htmlFor="phone" className="text-sm font-medium">
               Phone Number
             </label>
@@ -130,10 +132,11 @@ const ProfileForm = ({ onSubmit, isLoading, initialData }: ProfileFormProps) => 
               placeholder="+1 (555) 123-4567"
               value={profile.phone}
               onChange={handleChange}
+              className="h-9"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
               <label htmlFor="company" className="text-sm font-medium">
                 Company
               </label>
@@ -143,9 +146,10 @@ const ProfileForm = ({ onSubmit, isLoading, initialData }: ProfileFormProps) => 
                 placeholder="Your Company"
                 value={profile.company}
                 onChange={handleChange}
+                className="h-9"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label htmlFor="role" className="text-sm font-medium">
                 Role
               </label>
@@ -155,12 +159,13 @@ const ProfileForm = ({ onSubmit, isLoading, initialData }: ProfileFormProps) => 
                 placeholder="Your Position"
                 value={profile.role}
                 onChange={handleChange}
+                className="h-9"
               />
             </div>
           </div>
           <Button
             type="submit"
-            className="w-full bg-primary hover:bg-primary/90"
+            className="w-full bg-primary hover:bg-primary/90 h-9"
             disabled={isLoading}
           >
             {isLoading ? "Saving..." : "Save Changes"}

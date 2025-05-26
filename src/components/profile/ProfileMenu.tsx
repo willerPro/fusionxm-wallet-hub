@@ -43,51 +43,62 @@ const ProfileMenu = ({ activeTab, onTabChange }: ProfileMenuProps) => {
   };
 
   return (
-    <div className="flex flex-col space-y-2 w-full sm:w-64">
-      <Button
-        variant={activeTab === 'profile' ? 'default' : 'ghost'}
-        className="justify-start"
-        onClick={() => onTabChange('profile')}
-      >
-        <User className="mr-2 h-4 w-4" />
-        Profile Details
-      </Button>
-      <Button
-        variant={activeTab === 'settings' ? 'default' : 'ghost'}
-        className="justify-start"
-        onClick={() => onTabChange('settings')}
-      >
-        <Settings className="mr-2 h-4 w-4" />
-        Settings
-      </Button>
-      <Button
-        variant={activeTab === 'bots' ? 'default' : 'ghost'}
-        className="justify-start"
-        onClick={() => onTabChange('bots')}
-      >
-        <Bot className="mr-2 h-4 w-4" />
-        Trading Bots
-      </Button>
-      
-      <Button
-        variant="ghost"
-        className="justify-start"
-        onClick={() => navigate('/investors')}
-      >
-        <Users className="mr-2 h-4 w-4" />
-        Investors
-      </Button>
-      
-      <hr className="my-2" />
-      <Button
-        variant="ghost"
-        className="justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
-        onClick={handleLogout}
-        disabled={isLoggingOut}
-      >
-        <LogOut className="mr-2 h-4 w-4" />
-        {isLoggingOut ? 'Logging Out...' : 'Logout'}
-      </Button>
+    <div className="w-full">
+      {/* Mobile: Horizontal scrollable menu */}
+      <div className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
+        <Button
+          variant={activeTab === 'profile' ? 'default' : 'ghost'}
+          className="justify-start whitespace-nowrap flex-shrink-0 lg:w-full text-xs lg:text-sm px-3 py-2 h-8 lg:h-9"
+          onClick={() => onTabChange('profile')}
+        >
+          <User className="mr-1.5 h-3 w-3 lg:h-4 lg:w-4" />
+          <span className="hidden sm:inline">Profile</span>
+          <span className="sm:hidden">Profile</span>
+        </Button>
+        <Button
+          variant={activeTab === 'settings' ? 'default' : 'ghost'}
+          className="justify-start whitespace-nowrap flex-shrink-0 lg:w-full text-xs lg:text-sm px-3 py-2 h-8 lg:h-9"
+          onClick={() => onTabChange('settings')}
+        >
+          <Settings className="mr-1.5 h-3 w-3 lg:h-4 lg:w-4" />
+          <span className="hidden sm:inline">Settings</span>
+          <span className="sm:hidden">Settings</span>
+        </Button>
+        <Button
+          variant={activeTab === 'bots' ? 'default' : 'ghost'}
+          className="justify-start whitespace-nowrap flex-shrink-0 lg:w-full text-xs lg:text-sm px-3 py-2 h-8 lg:h-9"
+          onClick={() => onTabChange('bots')}
+        >
+          <Bot className="mr-1.5 h-3 w-3 lg:h-4 lg:w-4" />
+          <span className="hidden sm:inline">Bots</span>
+          <span className="sm:hidden">Bots</span>
+        </Button>
+        
+        <Button
+          variant="ghost"
+          className="justify-start whitespace-nowrap flex-shrink-0 lg:w-full text-xs lg:text-sm px-3 py-2 h-8 lg:h-9"
+          onClick={() => navigate('/investors')}
+        >
+          <Users className="mr-1.5 h-3 w-3 lg:h-4 lg:w-4" />
+          <span className="hidden sm:inline">Investors</span>
+          <span className="sm:hidden">Investors</span>
+        </Button>
+        
+        <div className="hidden lg:block">
+          <hr className="my-2" />
+        </div>
+        
+        <Button
+          variant="ghost"
+          className="justify-start text-red-500 hover:text-red-600 hover:bg-red-50 whitespace-nowrap flex-shrink-0 lg:w-full text-xs lg:text-sm px-3 py-2 h-8 lg:h-9"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+        >
+          <LogOut className="mr-1.5 h-3 w-3 lg:h-4 lg:w-4" />
+          <span className="hidden sm:inline">{isLoggingOut ? 'Logging Out...' : 'Logout'}</span>
+          <span className="sm:hidden">Logout</span>
+        </Button>
+      </div>
     </div>
   );
 };

@@ -107,8 +107,8 @@ const Profile = () => {
   const renderActiveContent = () => {
     if (isLoading && !profile) {
       return (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex justify-center items-center h-32">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       );
     }
@@ -128,17 +128,20 @@ const Profile = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 pb-20">
-      <h1 className="text-2xl font-semibold mb-6">My Account</h1>
+    <div className="container mx-auto p-3 pb-20 max-w-6xl">
+      <h1 className="text-xl font-semibold mb-4 px-1">My Account</h1>
       
-      <div className="flex flex-col md:flex-row gap-6">
-        <Card className="md:w-64 shrink-0">
-          <CardContent className="p-4">
-            <ProfileMenu activeTab={activeTab} onTabChange={setActiveTab} />
-          </CardContent>
-        </Card>
+      <div className="flex flex-col lg:flex-row gap-4">
+        {/* Mobile: Horizontal menu, Desktop: Vertical sidebar */}
+        <div className="lg:w-64 shrink-0">
+          <Card className="shadow-sm">
+            <CardContent className="p-3">
+              <ProfileMenu activeTab={activeTab} onTabChange={setActiveTab} />
+            </CardContent>
+          </Card>
+        </div>
         
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {renderActiveContent()}
         </div>
       </div>
