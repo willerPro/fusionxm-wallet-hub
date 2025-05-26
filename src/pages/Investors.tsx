@@ -1,24 +1,42 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import InvestorCard, { Investor } from "@/components/investor/InvestorCard";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search, Loader2 } from "lucide-react";
+import { Plus, Search, Loader2, UserCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import InvestorForm from "@/components/investor/InvestorForm";
-import { useToast } from "@/components/ui/use-toast";
+import KycForm from "@/components/investor/KycForm";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
+
+export interface KycData {
+  id: string;
+  username: string;
+  full_names: string;
+  identity_type: string;
+  identity_number: string;
+  location: string | null;
+  picture: string | null;
+  front_pic_id: string | null;
+  rear_pic_id: string | null;
+  investor_id: string;
+}
 
 const Investors = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const [investors, setInvestors] = useState<Investor[]>([]);
+  const [kycData, setKycData] = useState<KycData[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isKycDialogOpen, setIsKycDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedInvestor, setSelectedInvestor] = useState<Investor | null>(null);
   
   useEffect(() => {
     if (!user) {
@@ -38,6 +56,7 @@ const Investors = () => {
     }
 
     fetchInvestors();
+    fetchKycData();
   }, [user, navigate, toast]);
   
   const fetchInvestors = async () => {
@@ -58,7 +77,7 @@ const Investors = () => {
         fullName: `${investor.first_name} ${investor.last_name}`,
         email: investor.email || '',
         phone: investor.phone || '',
-        investorType: 'individual', // We'll need to add this field to the database if we want to use this
+        investorType: 'individual',
       }));
       
       setInvestors(transformedInvestors);
@@ -71,6 +90,22 @@ const Investors = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchKycData = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('kyc')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      setKycData(data || []);
+    } catch (error) {
+      console.error("Error fetching KYC data:", error);
     }
   };
 
@@ -88,7 +123,7 @@ const Investors = () => {
       // Split full name into first and last name
       const nameParts = investorData.fullName.split(' ');
       const firstName = nameParts[0];
-      const lastName = nameParts.slice(1).join(' ') || ''; // Default to empty string if no last name
+      const lastName = nameParts.slice(1).join(' ') || '';
       
       const { data, error } = await supabase
         .from('investors')
@@ -134,6 +169,70 @@ const Investors = () => {
     }
   };
 
+  const handleAddKyc = async (kycFormData: {
+    username: string;
+    full_names: string;
+    identity_type: string;
+    identity_number: string;
+    location: string;
+    picture: string;
+    front_pic_id: string;
+    rear_pic_id: string;
+  }) => {
+    if (!user || !selectedInvestor) return;
+    
+    setIsCreating(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('kyc')
+        .insert([{
+          user_id: user.id,
+          investor_id: selectedInvestor.id,
+          username: kycFormData.username,
+          full_names: kycFormData.full_names,
+          identity_type: kycFormData.identity_type,
+          identity_number: kycFormData.identity_number,
+          location: kycFormData.location,
+          picture: kycFormData.picture,
+          front_pic_id: kycFormData.front_pic_id,
+          rear_pic_id: kycFormData.rear_pic_id,
+        }])
+        .select();
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setKycData([...kycData, data[0]]);
+        toast({
+          title: "KYC data added",
+          description: `KYC information for ${selectedInvestor.fullName} has been added successfully.`,
+        });
+      }
+      
+      setIsKycDialogOpen(false);
+      setSelectedInvestor(null);
+    } catch (error) {
+      console.error("Error adding KYC data:", error);
+      toast({
+        title: "Error adding KYC data",
+        description: "There was a problem adding the KYC information.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleKycClick = (investor: Investor) => {
+    setSelectedInvestor(investor);
+    setIsKycDialogOpen(true);
+  };
+
+  const getKycForInvestor = (investorId: string) => {
+    return kycData.find(kyc => kyc.investor_id === investorId);
+  };
+
   const filteredInvestors = investors.filter(
     (investor) =>
       investor.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -175,9 +274,35 @@ const Investors = () => {
 
       <div className="space-y-4">
         {filteredInvestors.length > 0 ? (
-          filteredInvestors.map((investor) => (
-            <InvestorCard key={investor.id} investor={investor} />
-          ))
+          filteredInvestors.map((investor) => {
+            const investorKyc = getKycForInvestor(investor.id);
+            return (
+              <div key={investor.id} className="relative">
+                <InvestorCard investor={investor} />
+                <div className="absolute top-2 right-2">
+                  <Button
+                    variant={investorKyc ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleKycClick(investor)}
+                    className={investorKyc ? "bg-green-600 hover:bg-green-700" : ""}
+                  >
+                    <UserCheck className="h-4 w-4 mr-1" />
+                    {investorKyc ? "View KYC" : "Add KYC"}
+                  </Button>
+                </div>
+                {investorKyc && (
+                  <div className="mt-2 p-3 bg-green-50 rounded-md border border-green-200">
+                    <h4 className="font-medium text-green-800">KYC Information</h4>
+                    <p className="text-sm text-green-700">Username: {investorKyc.username}</p>
+                    <p className="text-sm text-green-700">Identity: {investorKyc.identity_type} - {investorKyc.identity_number}</p>
+                    {investorKyc.location && (
+                      <p className="text-sm text-green-700">Location: {investorKyc.location}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
         ) : (
           <div className="text-center py-10">
             {searchQuery ? (
@@ -206,6 +331,26 @@ const Investors = () => {
             </DialogDescription>
           </DialogHeader>
           <InvestorForm onSubmit={handleAddInvestor} isLoading={isCreating} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isKycDialogOpen} onOpenChange={setIsKycDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {getKycForInvestor(selectedInvestor?.id || '') ? 'View KYC Information' : 'Add KYC Information'}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedInvestor && `KYC details for ${selectedInvestor.fullName}`}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedInvestor && (
+            <KycForm 
+              onSubmit={handleAddKyc} 
+              isLoading={isCreating}
+              initialData={getKycForInvestor(selectedInvestor.id)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

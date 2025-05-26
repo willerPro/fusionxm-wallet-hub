@@ -1,6 +1,6 @@
 
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Wallet, Settings } from "lucide-react";
+import { Home, Wallet, Settings, Users, Activity } from "lucide-react";
 
 const BottomNavigation = () => {
   const location = useLocation();
@@ -10,6 +10,8 @@ const BottomNavigation = () => {
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: Home },
     { name: "Wallets", path: "/wallets", icon: Wallet },
+    { name: "Investors", path: "/investors", icon: Users },
+    { name: "Activities", path: "/activities", icon: Activity },
     { name: "Profile", path: "/profile", icon: Settings },
   ];
 
@@ -22,14 +24,14 @@ const BottomNavigation = () => {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center justify-center w-1/3 h-full ${
+              className={`flex flex-col items-center justify-center w-1/5 h-full ${
                 isActive ? "text-primary" : "text-gray-500"
               }`}
             >
               <item.icon className={`w-5 h-5 ${isActive ? "text-primary" : "text-gray-500"}`} />
               <span className={`text-xs mt-1 ${isActive ? "font-medium" : ""}`}>{item.name}</span>
               {isActive && (
-                <div className="absolute top-0 w-1/3 h-1 bg-primary rounded-b-md"></div>
+                <div className="absolute top-0 w-1/5 h-1 bg-primary rounded-b-md"></div>
               )}
             </button>
           );

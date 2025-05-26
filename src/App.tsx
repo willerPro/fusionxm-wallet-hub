@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Wallets from "./pages/Wallets";
 import WalletDetails from "./pages/WalletDetails";
 import Investors from "./pages/Investors";
+import Activities from "./pages/Activities";
 import Packages from "./pages/Packages";
 import Profile from "./pages/Profile";
 import Deposit from "./pages/Deposit";
@@ -41,6 +42,7 @@ const App = () => {
                 <Route path="/wallets" element={<Wallets />} />
                 <Route path="/wallets/:id" element={<WalletDetails />} />
                 <Route path="/investors" element={<Investors />} />
+                <Route path="/activities" element={<Activities />} />
                 <Route path="/packages" element={<Packages />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/deposit" element={<Deposit />} />

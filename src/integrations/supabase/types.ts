@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activities: {
+        Row: {
+          activity_type: string
+          created_at: string
+          date_added: string
+          date_ended: string | null
+          description: string | null
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          date_added?: string
+          date_ended?: string | null
+          description?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          date_added?: string
+          date_ended?: string | null
+          description?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bots: {
         Row: {
           amount: number
@@ -144,6 +180,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      kyc: {
+        Row: {
+          created_at: string
+          front_pic_id: string | null
+          full_names: string
+          id: string
+          identity_number: string
+          identity_type: string
+          investor_id: string
+          location: string | null
+          picture: string | null
+          rear_pic_id: string | null
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          front_pic_id?: string | null
+          full_names: string
+          id?: string
+          identity_number: string
+          identity_type: string
+          investor_id: string
+          location?: string | null
+          picture?: string | null
+          rear_pic_id?: string | null
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          front_pic_id?: string | null
+          full_names?: string
+          id?: string
+          identity_number?: string
+          identity_type?: string
+          investor_id?: string
+          location?: string | null
+          picture?: string | null
+          rear_pic_id?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kyc_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: true
+            referencedRelation: "investors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       packages: {
         Row: {
