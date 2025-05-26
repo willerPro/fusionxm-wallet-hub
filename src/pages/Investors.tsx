@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -239,11 +240,12 @@ const Investors = () => {
     <div className="container mx-auto p-4 max-w-xl">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Investors</h2>
-        <Button 
-          className="bg-primary hover:bg-primary/90"
+        <Button
+          size="icon"
+          className="h-10 w-10 rounded-full bg-primary hover:bg-primary/90"
           onClick={() => setIsDialogOpen(true)}
         >
-          <Plus className="mr-2 h-4 w-4" /> Add Investor
+          <Plus className="h-5 w-5" />
         </Button>
       </div>
 
@@ -296,15 +298,7 @@ const Investors = () => {
             {searchQuery ? (
               <p className="text-gray-500">No investors found matching "{searchQuery}"</p>
             ) : (
-              <>
-                <p className="text-gray-500 mb-4">You haven't added any investors yet</p>
-                <Button 
-                  onClick={() => setIsDialogOpen(true)}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  Add Your First Investor
-                </Button>
-              </>
+              <p className="text-gray-500">You haven't added any investors yet</p>
             )}
           </div>
         )}
