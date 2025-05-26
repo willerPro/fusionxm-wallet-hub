@@ -56,13 +56,19 @@ const ActivityForm = ({ onSubmit, isLoading, initialData }: ActivityFormProps) =
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="activity_type">Activity Type</Label>
-        <Input
-          id="activity_type"
-          value={formData.activity_type}
-          onChange={(e) => setFormData(prev => ({ ...prev, activity_type: e.target.value }))}
-          placeholder="e.g., Meeting, Training, Project"
-          required
-        />
+        <Select value={formData.activity_type} onValueChange={(value) => setFormData(prev => ({ ...prev, activity_type: value }))}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select activity type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Contract Bot">Contract Bot</SelectItem>
+            <SelectItem value="Nextbase Positions">Nextbase Positions</SelectItem>
+            <SelectItem value="Pocket Transactions">Pocket Transactions</SelectItem>
+            <SelectItem value="User Withdraws">User Withdraws</SelectItem>
+            <SelectItem value="User Deposit">User Deposit</SelectItem>
+            <SelectItem value="System Updates">System Updates</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -195,10 +194,11 @@ const Activities = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Activities</h2>
         <Button 
-          className="bg-primary hover:bg-primary/90"
+          size="icon"
+          className="bg-primary hover:bg-primary/90 rounded-full"
           onClick={handleAddNew}
         >
-          <Plus className="mr-2 h-4 w-4" /> Add Activity
+          <Plus className="h-5 w-5" />
         </Button>
       </div>
 
@@ -267,15 +267,7 @@ const Activities = () => {
             {searchQuery ? (
               <p className="text-gray-500">No activities found matching "{searchQuery}"</p>
             ) : (
-              <>
-                <p className="text-gray-500 mb-4">You haven't added any activities yet</p>
-                <Button 
-                  onClick={handleAddNew}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  Add Your First Activity
-                </Button>
-              </>
+              <p className="text-gray-500">You haven't added any activities yet</p>
             )}
           </div>
         )}
