@@ -1,6 +1,5 @@
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { User } from "lucide-react";
 
 export type Investor = {
@@ -29,7 +28,7 @@ const InvestorCard = ({ investor, onSelect }: InvestorCardProps) => {
 
   return (
     <Card
-      className="overflow-hidden hover:shadow-md transition-shadow"
+      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
       onClick={handleClick}
     >
       <CardContent className="p-6 flex items-center">

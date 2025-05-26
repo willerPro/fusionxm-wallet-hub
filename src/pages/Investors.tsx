@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import KycForm from "@/components/investor/KycForm";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
+import InvestorDetails from "@/components/investor/InvestorDetails";
 
 export interface KycData {
   id: string;
@@ -37,6 +37,7 @@ const Investors = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInvestor, setSelectedInvestor] = useState<Investor | null>(null);
+  const [viewingInvestor, setViewingInvestor] = useState<Investor | null>(null);
   
   useEffect(() => {
     if (!user) {
@@ -218,6 +219,14 @@ const Investors = () => {
     setIsKycDialogOpen(true);
   };
 
+  const handleInvestorSelect = (investor: Investor) => {
+    setViewingInvestor(investor);
+  };
+
+  const handleBackToList = () => {
+    setViewingInvestor(null);
+  };
+
   const getKycForInvestor = (investorId: string) => {
     return kycData.find(kyc => kyc.investor_id === investorId);
   };
@@ -232,6 +241,19 @@ const Investors = () => {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Show investor details if one is selected
+  if (viewingInvestor) {
+    return (
+      <div className="container mx-auto p-4 max-w-xl">
+        <InvestorDetails
+          investor={viewingInvestor}
+          kycData={getKycForInvestor(viewingInvestor.id)}
+          onBack={handleBackToList}
+        />
       </div>
     );
   }
@@ -268,28 +290,24 @@ const Investors = () => {
             const investorKyc = getKycForInvestor(investor.id);
             return (
               <div key={investor.id} className="relative">
-                <InvestorCard investor={investor} />
+                <InvestorCard 
+                  investor={investor} 
+                  onSelect={handleInvestorSelect}
+                />
                 <div className="absolute top-2 right-2">
                   <Button
                     variant={investorKyc ? "default" : "outline"}
                     size="sm"
-                    onClick={() => handleKycClick(investor)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleKycClick(investor);
+                    }}
                     className={investorKyc ? "bg-green-600 hover:bg-green-700" : ""}
                   >
                     <UserCheck className="h-4 w-4 mr-1" />
                     {investorKyc ? "View KYC" : "Add KYC"}
                   </Button>
                 </div>
-                {investorKyc && (
-                  <div className="mt-2 p-3 bg-green-50 rounded-md border border-green-200">
-                    <h4 className="font-medium text-green-800">KYC Information</h4>
-                    <p className="text-sm text-green-700">Username: {investorKyc.username}</p>
-                    <p className="text-sm text-green-700">Identity: {investorKyc.identity_type} - {investorKyc.identity_number}</p>
-                    {investorKyc.location && (
-                      <p className="text-sm text-green-700">Location: {investorKyc.location}</p>
-                    )}
-                  </div>
-                )}
               </div>
             );
           })
