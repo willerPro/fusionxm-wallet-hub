@@ -32,15 +32,45 @@ const InvestorDetails = ({ investor, kycData, onBack }: InvestorDetailsProps) =>
   const fetchInvestorWallets = async () => {
     try {
       setIsLoading(true);
+      console.log("Fetching wallets for investor:", investor.id);
+      
+      // First get the investor record to find the user_id
+      const { data: investorData, error: investorError } = await supabase
+        .from('investors')
+        .select('user_id')
+        .eq('id', investor.id)
+        .single();
+      
+      if (investorError) {
+        console.error("Error fetching investor data:", investorError);
+        setWallets([]);
+        return;
+      }
+
+      if (!investorData?.user_id) {
+        console.log("No user_id found for investor");
+        setWallets([]);
+        return;
+      }
+
+      console.log("Found user_id:", investorData.user_id);
+
+      // Now fetch wallets using the user_id
       const { data, error } = await supabase
         .from('wallets')
         .select('id, name, balance, currency')
-        .eq('user_id', investor.id);
+        .eq('user_id', investorData.user_id);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching wallets:", error);
+        setWallets([]);
+        return;
+      }
+
+      console.log("Fetched wallets:", data);
       setWallets(data || []);
     } catch (error) {
-      console.error("Error fetching investor wallets:", error);
+      console.error("Error in fetchInvestorWallets:", error);
       setWallets([]);
     } finally {
       setIsLoading(false);
