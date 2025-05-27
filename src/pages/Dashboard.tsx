@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,33 +13,15 @@ import { Activity } from "@/types/activity";
 import { toast } from "@/components/ui/sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const ANIMATION_STATE_KEY = "investmentAnimationState";
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
-  const [totalInvested, setTotalInvested] = useState(0);
+  const [runningProfit, setRunningProfit] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [animating, setAnimating] = useState(false);
   const [showWarning, setShowWarning] = useState(true);
-
-  // Load saved animation state from localStorage
-  useEffect(() => {
-    const savedState = localStorage.getItem(ANIMATION_STATE_KEY);
-    if (savedState) {
-      try {
-        const parsedState = JSON.parse(savedState);
-        if (parsedState.totalInvested && !isNaN(parsedState.totalInvested)) {
-          setTotalInvested(parsedState.totalInvested);
-        }
-      } catch (error) {
-        console.error("Error parsing saved animation state:", error);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -49,10 +32,11 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        // Fetch wallets
+        // Fetch wallets for the current user only
         const { data: walletsData, error: walletsError } = await supabase
           .from('wallets')
           .select('*')
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         
         if (walletsError) throw walletsError;
@@ -68,20 +52,18 @@ const Dashboard = () => {
         
         setWallets(transformedWallets);
         
-        // Calculate total balance
+        // Calculate total balance from user's wallets only
         const total = transformedWallets.reduce((sum, wallet) => sum + wallet.balance, 0);
         setTotalBalance(total);
         
-        // Only set initial invested amount if no saved value exists
-        const savedState = localStorage.getItem(ANIMATION_STATE_KEY);
-        if (!savedState && total > 0) {
-          setTotalInvested(total * 0.6); // Initial 60% of total balance
-        }
+        // Set running profit to 0 as requested
+        setRunningProfit(0);
         
-        // Fetch recent transactions
+        // Fetch recent transactions for the current user
         const { data: transactionsData, error: transactionsError } = await supabase
           .from('transactions')
           .select('*, wallets(*)')
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(5);
         
@@ -106,60 +88,7 @@ const Dashboard = () => {
     };
 
     fetchDashboardData();
-
-    // Start animation loop after data is loaded
-    const animationTimer = setTimeout(() => {
-      setAnimating(true);
-    }, 1000);
-
-    return () => clearTimeout(animationTimer);
   }, [user, navigate]);
-
-  // Animation effect for invested amount with localStorage persistence
-  useEffect(() => {
-    if (!animating || totalBalance === 0) return;
-
-    const minInvestment = totalBalance * 0.3; // 30% of total balance
-    const maxInvestment = totalBalance * 1.0; // 100% of total balance
-    const targetInvestment = totalBalance * 0.6; // 60% of total balance
-    
-    let direction = 1; // 1 for up, -1 for down
-    let currentValue = totalInvested;
-    
-    // Determine initial direction based on current value
-    if (currentValue >= targetInvestment) {
-      direction = -1;
-    }
-    
-    const animationInterval = setInterval(() => {
-      // Change direction when reaching limits
-      if (currentValue >= maxInvestment) {
-        direction = -1;
-      } else if (currentValue <= minInvestment) {
-        direction = 1;
-      }
-      
-      // Increment/decrement by a small random amount
-      const change = (Math.random() * 0.02 + 0.01) * totalBalance * direction;
-      const newValue = Math.max(minInvestment, Math.min(maxInvestment, currentValue + change));
-      
-      setTotalInvested(newValue);
-      
-      // Save current animation state to localStorage
-      try {
-        localStorage.setItem(ANIMATION_STATE_KEY, JSON.stringify({
-          totalInvested: newValue,
-          lastUpdated: new Date().toISOString()
-        }));
-      } catch (error) {
-        console.error("Error saving animation state:", error);
-      }
-      
-      currentValue = newValue;
-    }, 2000); // Update every 2 seconds
-    
-    return () => clearInterval(animationInterval);
-  }, [animating, totalBalance]);
 
   if (isLoading) {
     return (
@@ -192,15 +121,10 @@ const Dashboard = () => {
         <BalanceCard 
           title="Total Balance" 
           amount={totalBalance} 
-          change={2.4} 
-          changeType="positive" 
         />
         <BalanceCard 
-          title="Total Invested" 
-          amount={totalInvested} 
-          change={1.2} 
-          changeType="positive" 
-          animate={true}
+          title="Running Profit" 
+          amount={runningProfit} 
         />
       </div>
 
