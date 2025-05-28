@@ -1,11 +1,12 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
 
@@ -18,13 +19,21 @@ type Wallet = {
 
 const Deposit = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useAuth();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [selectedWalletId, setSelectedWalletId] = useState<string>("");
-  const [amount, setAmount] = useState<string>("100");
-  const [isLoading, setIsLoading] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string>("");
+  const [selectedNetwork, setSelectedNetwork] = useState<string>("");
   const [isFetching, setIsFetching] = useState(true);
+
+  const networks = [
+    { value: "bitcoin", label: "Bitcoin (BTC)" },
+    { value: "ethereum", label: "Ethereum (ETH)" },
+    { value: "tron", label: "Tron (TRX)" },
+    { value: "usdt-trc20", label: "USDT (TRC20)" },
+    { value: "usdt-erc20", label: "USDT (ERC20)" },
+    { value: "bnb", label: "BNB Smart Chain" },
+  ];
 
   useEffect(() => {
     if (!user) {
@@ -43,12 +52,12 @@ const Deposit = () => {
       const { data, error } = await supabase
         .from('wallets')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       
       if (data && data.length > 0) {
-        // Transform the data to match our Wallet type
         const transformedWallets = data.map((wallet: any) => ({
           id: wallet.id,
           name: wallet.name,
@@ -58,114 +67,34 @@ const Deposit = () => {
         
         setWallets(transformedWallets);
         
-        // Set the first wallet as default selected
         if (data.length > 0 && !selectedWalletId) {
           setSelectedWalletId(data[0].id);
         }
       }
     } catch (error) {
       console.error("Error fetching wallets:", error);
-      toast({
-        title: "Error loading wallets",
-        description: "There was a problem loading your wallets.",
-        variant: "destructive",
-      });
     } finally {
       setIsFetching(false);
     }
   };
 
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Only allow numbers and a single decimal point
-    if (/^\d*\.?\d*$/.test(value) || value === '') {
-      setAmount(value);
-    }
-  };
-
-  const handleDeposit = async () => {
-    if (!user || !selectedWalletId || !amount || parseFloat(amount) <= 0) {
-      toast({
-        title: "Invalid deposit",
-        description: "Please select a wallet and enter a valid amount.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      // Update wallet balance directly
-      const numericAmount = parseFloat(amount);
-      
-      // Get current wallet
-      const { data: walletData, error: walletError } = await supabase
-        .from('wallets')
-        .select('balance')
-        .eq('id', selectedWalletId)
-        .single();
-        
-      if (walletError) throw walletError;
-      
-      const currentBalance = Number(walletData.balance || 0);
-      const newBalance = currentBalance + numericAmount;
-      
-      // Update wallet balance
-      const { error: updateError } = await supabase
-        .from('wallets')
-        .update({ balance: newBalance })
-        .eq('id', selectedWalletId);
-        
-      if (updateError) throw updateError;
-      
-      // Record the transaction
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert([{
-          wallet_id: selectedWalletId,
-          user_id: user.id,
-          amount: numericAmount,
-          type: 'deposit',
-          status: 'completed'
-        }]);
-      
-      if (transactionError) throw transactionError;
-      
-      toast({
-        title: "Deposit successful",
-        description: `You have deposited ${amount} to your wallet.`,
-        duration: 3000,
-      });
-      
-      // Navigate to wallets page
-      navigate('/wallets');
-    } catch (error) {
-      console.error("Error making deposit:", error);
-      toast({
-        title: "Error making deposit",
-        description: "There was a problem processing your deposit. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (isFetching) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto p-4 max-w-md">
+      <div className="mb-4">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Deposit Funds</CardTitle>
-          <CardDescription>Add money to your investment wallet</CardDescription>
+          <CardTitle className="text-xl">Deposit Setup</CardTitle>
+          <CardDescription>Configure your deposit details</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {wallets.length === 0 ? (
@@ -200,42 +129,50 @@ const Deposit = () => {
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
-                <label htmlFor="amount" className="text-sm font-medium">
-                  Amount
+                <label htmlFor="address" className="text-sm font-medium">
+                  Wallet Address
                 </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
-                  <Input
-                    id="amount"
-                    value={amount}
-                    onChange={handleAmountChange}
-                    className="pl-7"
-                    placeholder="0.00"
-                  />
-                </div>
+                <Input
+                  id="address"
+                  value={walletAddress}
+                  onChange={(e) => setWalletAddress(e.target.value)}
+                  placeholder="Enter your wallet address"
+                />
               </div>
+
+              <div className="space-y-2">
+                <label htmlFor="network" className="text-sm font-medium">
+                  Choose Network
+                </label>
+                <Select 
+                  value={selectedNetwork}
+                  onValueChange={setSelectedNetwork}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select network" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {networks.map((network) => (
+                      <SelectItem key={network.value} value={network.value}>
+                        {network.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Alert className="bg-amber-50 border-amber-300">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800">
+                  <strong>Please note:</strong> Deposits might be delayed due to transaction processing times. 
+                  Processing can take anywhere from a few minutes to several hours depending on network congestion.
+                </AlertDescription>
+              </Alert>
             </>
           )}
         </CardContent>
-        
-        {wallets.length > 0 && (
-          <CardFooter>
-            <Button
-              className="w-full bg-primary hover:bg-primary/90"
-              onClick={handleDeposit}
-              disabled={isLoading || !selectedWalletId || parseFloat(amount || '0') <= 0}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
-                </>
-              ) : (
-                "Deposit Funds"
-              )}
-            </Button>
-          </CardFooter>
-        )}
       </Card>
     </div>
   );
