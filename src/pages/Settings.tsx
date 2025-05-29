@@ -66,17 +66,7 @@ const Settings = () => {
           </div>
         );
       case 'support':
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Button variant="ghost" size="sm" onClick={handleBack}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h2 className="text-xl font-semibold">AI Support</h2>
-            </div>
-            <AISupport />
-          </div>
-        );
+        return <AISupport />;
       default:
         return (
           <div className="space-y-4">
@@ -100,6 +90,11 @@ const Settings = () => {
         );
     }
   };
+
+  // For mobile, when support is active, render full screen chat
+  if (activeSection === 'support' && isMobile) {
+    return <AISupport />;
+  }
 
   return (
     <div className="container mx-auto p-4 pb-20 max-w-6xl">

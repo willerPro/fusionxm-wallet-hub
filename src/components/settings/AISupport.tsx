@@ -1,11 +1,11 @@
 
 import { useState, useRef, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, Loader2 } from "lucide-react";
+import { Send, Bot, User, Loader2, ArrowLeft } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface Message {
   id: string;
@@ -18,7 +18,7 @@ const AISupport = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: 'Hello! I\'m your AI assistant. How can I help you today?',
+      content: 'Hello! I\'m NEXOR-AI, your intelligent assistant. How can I help you today?',
       sender: 'ai',
       timestamp: new Date()
     }
@@ -27,6 +27,7 @@ const AISupport = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -100,16 +101,32 @@ const AISupport = () => {
   };
 
   return (
-    <Card className="h-[600px] flex flex-col">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <Bot className="h-5 w-5 text-primary" />
-          AI Support Chat
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col flex-1 p-0">
+    <div className="flex flex-col h-screen bg-background">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-4 border-b bg-white sticky top-0 z-10">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/settings')}
+          className="p-2"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <Bot className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold">Chat with NEXOR-AI</h1>
+            <p className="text-xs text-muted-foreground">Online</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages Area */}
+      <div className="flex-1 flex flex-col min-h-0">
         <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-          <div className="space-y-4">
+          <div className="space-y-4 pb-4">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -118,24 +135,27 @@ const AISupport = () => {
                 }`}
               >
                 {message.sender === 'ai' && (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <Bot className="h-4 w-4 text-primary" />
                   </div>
                 )}
                 <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                     message.sender === 'user'
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted'
                   }`}
                 >
-                  <p className="text-sm">{message.content}</p>
-                  <span className="text-xs opacity-70 mt-1 block">
-                    {message.timestamp.toLocaleTimeString()}
+                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  <span className="text-xs opacity-70 mt-2 block">
+                    {message.timestamp.toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
                   </span>
                 </div>
                 {message.sender === 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
                     <User className="h-4 w-4" />
                   </div>
                 )}
@@ -143,36 +163,43 @@ const AISupport = () => {
             ))}
             {isLoading && (
               <div className="flex gap-3 justify-start">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <Bot className="h-4 w-4 text-primary" />
                 </div>
-                <div className="bg-muted rounded-lg p-3">
+                <div className="bg-muted rounded-2xl px-4 py-3">
                   <Loader2 className="h-4 w-4 animate-spin" />
                 </div>
               </div>
             )}
           </div>
         </ScrollArea>
-        <div className="p-4 border-t">
-          <div className="flex gap-2">
-            <Input
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
-              disabled={isLoading}
-            />
+
+        {/* Input Area - Fixed at bottom */}
+        <div className="border-t bg-white p-4">
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type your message..."
+                disabled={isLoading}
+                className="rounded-full border-2 focus:border-primary"
+                autoComplete="off"
+              />
+            </div>
             <Button
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isLoading}
               size="icon"
+              className="rounded-full h-10 w-10"
             >
               <Send className="h-4 w-4" />
             </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
