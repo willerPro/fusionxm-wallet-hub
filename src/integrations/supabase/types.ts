@@ -24,6 +24,7 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+          wallet_id: string | null
         }
         Insert: {
           activity_type: string
@@ -39,6 +40,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
+          wallet_id?: string | null
         }
         Update: {
           activity_type?: string
@@ -54,8 +56,17 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+          wallet_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "activities_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bots: {
         Row: {

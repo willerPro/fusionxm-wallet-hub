@@ -51,7 +51,7 @@ const Activities = () => {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('activities')
-        .select('*, wallet_id')
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
@@ -103,7 +103,7 @@ const Activities = () => {
           })
           .eq('id', editingActivity.id)
           .eq('user_id', user.id)
-          .select('*, wallet_id');
+          .select();
         
         if (error) throw error;
         
@@ -132,7 +132,7 @@ const Activities = () => {
             server_space_taken: activityData.server_space_taken || 0,
             next_update_set: activityData.next_update_set || null,
           }])
-          .select('*, wallet_id');
+          .select();
         
         if (error) throw error;
         
