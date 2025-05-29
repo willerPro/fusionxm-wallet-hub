@@ -1,16 +1,24 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Users, MessageCircle, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AISupport from "@/components/settings/AISupport";
 
 const Settings = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState<string | null>(null);
+
+  useEffect(() => {
+    const section = searchParams.get('section');
+    if (section) {
+      setActiveSection(section);
+    }
+  }, [searchParams]);
 
   const menuItems = [
     {
@@ -38,11 +46,13 @@ const Settings = () => {
       navigate('/investors');
     } else {
       setActiveSection(id);
+      setSearchParams({ section: id });
     }
   };
 
   const handleBack = () => {
     setActiveSection(null);
+    setSearchParams({});
   };
 
   const renderContent = () => {

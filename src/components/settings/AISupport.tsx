@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,9 +98,9 @@ const AISupport = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-white sticky top-0 z-10">
+      <div className="flex items-center gap-3 p-4 border-b bg-white sticky top-0 z-10 flex-shrink-0">
         <Button
           variant="ghost"
           size="sm"
@@ -120,8 +121,15 @@ const AISupport = () => {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <div 
+          className="flex-1 overflow-y-auto p-4 scrollbar-hide"
+          ref={scrollAreaRef}
+          style={{ 
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
           <div className="space-y-4 pb-4">
             {messages.map((message) => (
               <div
@@ -168,10 +176,10 @@ const AISupport = () => {
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Input Area - Fixed at bottom */}
-        <div className="border-t bg-white p-4">
+        <div className="border-t bg-white p-4 flex-shrink-0">
           <div className="flex gap-2 items-end">
             <div className="flex-1">
               <Input
@@ -195,6 +203,12 @@ const AISupport = () => {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 };

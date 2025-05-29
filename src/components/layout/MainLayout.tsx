@@ -24,15 +24,16 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   }, [navigate, location.pathname, user, loading]);
   
   const isAuthPage = ["/login", "/signup", "/"].includes(location.pathname);
+  const isChatPage = location.pathname === "/settings" && location.search.includes("support");
   
   return (
     <div className="min-h-screen flex flex-col bg-secondary/20">
       <OfflineWarning />
       {!isAuthPage && <Header />}
-      <main className={`flex-1 ${!isAuthPage ? "pb-16" : ""}`}>
+      <main className={`flex-1 ${!isAuthPage && !isChatPage ? "pb-16" : ""}`}>
         {children}
       </main>
-      {!isAuthPage && <BottomNavigation />}
+      {!isAuthPage && !isChatPage && <BottomNavigation />}
     </div>
   );
 };
