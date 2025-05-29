@@ -109,7 +109,7 @@ const Activities = () => {
         
         if (data && data.length > 0) {
           setActivities(activities.map(activity => 
-            activity.id === editingActivity.id ? data[0] : activity
+            activity.id === editingActivity.id ? data[0] as Activity : activity
           ));
           toast({
             title: "Activity updated",
@@ -137,7 +137,7 @@ const Activities = () => {
         if (error) throw error;
         
         if (data && data.length > 0) {
-          setActivities([data[0], ...activities]);
+          setActivities([data[0] as Activity, ...activities]);
           toast({
             title: "Activity added",
             description: "New activity has been added successfully.",
