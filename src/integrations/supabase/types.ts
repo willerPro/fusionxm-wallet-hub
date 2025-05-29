@@ -12,33 +12,45 @@ export type Database = {
       activities: {
         Row: {
           activity_type: string
+          amount_in_use: number | null
           created_at: string
+          current_profit: number | null
           date_added: string
           date_ended: string | null
           description: string | null
           id: string
+          next_update_set: string | null
+          server_space_taken: number | null
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
           activity_type: string
+          amount_in_use?: number | null
           created_at?: string
+          current_profit?: number | null
           date_added?: string
           date_ended?: string | null
           description?: string | null
           id?: string
+          next_update_set?: string | null
+          server_space_taken?: number | null
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           activity_type?: string
+          amount_in_use?: number | null
           created_at?: string
+          current_profit?: number | null
           date_added?: string
           date_ended?: string | null
           description?: string | null
           id?: string
+          next_update_set?: string | null
+          server_space_taken?: number | null
           status?: string
           updated_at?: string
           user_id?: string

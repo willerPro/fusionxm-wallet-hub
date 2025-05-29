@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
 import ActivityForm from "@/components/activity/ActivityForm";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export interface Activity {
   id: string;
@@ -17,6 +19,10 @@ export interface Activity {
   status: string;
   date_added: string;
   date_ended: string | null;
+  current_profit: number | null;
+  amount_in_use: number | null;
+  server_space_taken: number | null;
+  next_update_set: string | null;
 }
 
 const Activities = () => {
@@ -68,6 +74,10 @@ const Activities = () => {
     description: string;
     status: string;
     date_ended?: string;
+    current_profit?: number;
+    amount_in_use?: number;
+    server_space_taken?: number;
+    next_update_set?: string;
   }) => {
     if (!user) return;
     
@@ -83,6 +93,10 @@ const Activities = () => {
             description: activityData.description,
             status: activityData.status,
             date_ended: activityData.date_ended || null,
+            current_profit: activityData.current_profit || 0,
+            amount_in_use: activityData.amount_in_use || 0,
+            server_space_taken: activityData.server_space_taken || 0,
+            next_update_set: activityData.next_update_set || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingActivity.id)
@@ -110,6 +124,10 @@ const Activities = () => {
             description: activityData.description,
             status: activityData.status,
             date_ended: activityData.date_ended || null,
+            current_profit: activityData.current_profit || 0,
+            amount_in_use: activityData.amount_in_use || 0,
+            server_space_taken: activityData.server_space_taken || 0,
+            next_update_set: activityData.next_update_set || null,
           }])
           .select();
         
@@ -190,7 +208,7 @@ const Activities = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-xl">
+    <div className="container mx-auto p-4 max-w-6xl">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Activities</h2>
         <Button 
@@ -215,66 +233,92 @@ const Activities = () => {
         />
       </div>
 
-      <div className="space-y-4">
-        {filteredActivities.length > 0 ? (
-          filteredActivities.map((activity) => (
-            <Card key={activity.id}>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{activity.activity_type}</CardTitle>
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                      activity.status === 'active' ? 'bg-green-100 text-green-800' :
-                      activity.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {activity.status}
-                    </span>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(activity)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(activity.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {activity.description && (
-                  <p className="text-sm text-gray-600 mb-2">{activity.description}</p>
-                )}
-                <div className="text-xs text-gray-500">
-                  <p>Started: {new Date(activity.date_added).toLocaleDateString()}</p>
-                  {activity.date_ended && (
-                    <p>Ended: {new Date(activity.date_ended).toLocaleDateString()}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <div className="text-center py-10">
-            {searchQuery ? (
-              <p className="text-gray-500">No activities found matching "{searchQuery}"</p>
-            ) : (
-              <p className="text-gray-500">You haven't added any activities yet</p>
-            )}
-          </div>
-        )}
-      </div>
+      {filteredActivities.length > 0 ? (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Activity Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Current Profit</TableHead>
+                  <TableHead>Amount in Use</TableHead>
+                  <TableHead>Server Space</TableHead>
+                  <TableHead>Next Update</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredActivities.map((activity) => (
+                  <TableRow key={activity.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{activity.activity_type}</div>
+                        {activity.description && (
+                          <div className="text-sm text-gray-500">{activity.description}</div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                        activity.status === 'active' ? 'bg-green-100 text-green-800' :
+                        activity.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {activity.status}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`font-medium ${
+                        (activity.current_profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        ${(activity.current_profit || 0).toFixed(2)}
+                      </span>
+                    </TableCell>
+                    <TableCell>${(activity.amount_in_use || 0).toFixed(2)}</TableCell>
+                    <TableCell>{(activity.server_space_taken || 0).toFixed(1)} MB</TableCell>
+                    <TableCell>
+                      {activity.next_update_set ? 
+                        new Date(activity.next_update_set).toLocaleDateString() : 
+                        'Not set'
+                      }
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(activity)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(activity.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="text-center py-10">
+          {searchQuery ? (
+            <p className="text-gray-500">No activities found matching "{searchQuery}"</p>
+          ) : (
+            <p className="text-gray-500">You haven't added any activities yet</p>
+          )}
+        </div>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {editingActivity ? 'Edit Activity' : 'Add New Activity'}
