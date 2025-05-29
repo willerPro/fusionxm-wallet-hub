@@ -6,6 +6,7 @@ import { TrendingUp, Users, MessageCircle, ArrowLeft } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AISupport from "@/components/settings/AISupport";
+import ProfitSettings from "@/components/settings/ProfitSettings";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -23,9 +24,9 @@ const Settings = () => {
   const menuItems = [
     {
       id: 'profit',
-      label: 'Profit Settings',
+      label: 'User Profile & Stats',
       icon: TrendingUp,
-      description: 'Manage your profit preferences and targets'
+      description: 'View your profile and account statistics'
     },
     {
       id: 'investors',
@@ -58,23 +59,7 @@ const Settings = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'profit':
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Button variant="ghost" size="sm" onClick={handleBack}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h2 className="text-xl font-semibold">Profit Settings</h2>
-            </div>
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-muted-foreground">
-                  Profit settings configuration will be available here.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        );
+        return <ProfitSettings onBack={handleBack} />;
       case 'support':
         return <AISupport />;
       default:
