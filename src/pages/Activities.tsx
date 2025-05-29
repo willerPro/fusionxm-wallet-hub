@@ -1,15 +1,15 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search, Loader2, Edit, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Search, Loader2, Trash2, ChevronDown, ChevronUp, StopCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
 import ActivityForm from "@/components/activity/ActivityForm";
+import StopBotDialog from "@/components/activity/StopBotDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -43,6 +43,15 @@ const Activities = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [stopBotDialog, setStopBotDialog] = useState<{
+    isOpen: boolean;
+    activity: Activity | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    activity: null,
+    isLoading: false,
+  });
   
   useEffect(() => {
     if (!user) {
@@ -170,6 +179,50 @@ const Activities = () => {
     }
   };
 
+  const handleStopBot = async (password: string) => {
+    if (!user || !stopBotDialog.activity) return;
+    
+    setStopBotDialog(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      // Here you would typically verify the password with your authentication system
+      // For now, we'll just update the activity status to 'stopped'
+      const { data, error } = await supabase
+        .from('activities')
+        .update({
+          status: 'stopped',
+          date_ended: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', stopBotDialog.activity.id)
+        .eq('user_id', user.id)
+        .select();
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setActivities(activities.map(activity => 
+          activity.id === stopBotDialog.activity!.id ? { ...activity, status: 'stopped', date_ended: new Date().toISOString() } : activity
+        ));
+        toast({
+          title: "Bot stopped",
+          description: "The bot activity has been stopped successfully.",
+        });
+      }
+      
+      setStopBotDialog({ isOpen: false, activity: null, isLoading: false });
+    } catch (error) {
+      console.error("Error stopping bot:", error);
+      toast({
+        title: "Error stopping bot",
+        description: "There was a problem stopping the bot activity.",
+        variant: "destructive",
+      });
+    } finally {
+      setStopBotDialog(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!user) return;
     
@@ -205,6 +258,14 @@ const Activities = () => {
   const handleAddNew = () => {
     setEditingActivity(null);
     setIsDialogOpen(true);
+  };
+
+  const handleStopBotClick = (activity: Activity) => {
+    setStopBotDialog({
+      isOpen: true,
+      activity,
+      isLoading: false,
+    });
   };
 
   const toggleRowExpansion = (activityId: string) => {
@@ -272,6 +333,7 @@ const Activities = () => {
                           <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                             activity.status === 'active' ? 'bg-green-100 text-green-800' :
                             activity.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                            activity.status === 'stopped' ? 'bg-red-100 text-red-800' :
                             'bg-gray-100 text-gray-800'
                           }`}>
                             {activity.status}
@@ -334,14 +396,16 @@ const Activities = () => {
                           )}
                           
                           <div className="flex space-x-2 pt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(activity)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </Button>
+                            {activity.status === 'active' && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleStopBotClick(activity)}
+                              >
+                                <StopCircle className="h-4 w-4 mr-2" />
+                                Stop Bot
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -390,6 +454,7 @@ const Activities = () => {
                         <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
                           activity.status === 'active' ? 'bg-green-100 text-green-800 animate-scale-in' :
                           activity.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                          activity.status === 'stopped' ? 'bg-red-100 text-red-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
                           {activity.status}
@@ -426,14 +491,16 @@ const Activities = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(activity)}
-                            className={activity.status === 'active' ? 'hover-scale' : ''}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          {activity.status === 'active' && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleStopBotClick(activity)}
+                              className={activity.status === 'active' ? 'hover-scale' : ''}
+                            >
+                              <StopCircle className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -478,6 +545,16 @@ const Activities = () => {
           />
         </DialogContent>
       </Dialog>
+
+      {stopBotDialog.activity && (
+        <StopBotDialog
+          isOpen={stopBotDialog.isOpen}
+          onClose={() => setStopBotDialog({ isOpen: false, activity: null, isLoading: false })}
+          activity={stopBotDialog.activity}
+          onConfirm={handleStopBot}
+          isLoading={stopBotDialog.isLoading}
+        />
+      )}
     </div>
   );
 };
