@@ -14,6 +14,7 @@ import Investors from "./pages/Investors";
 import Activities from "./pages/Activities";
 import Packages from "./pages/Packages";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import Deposit from "./pages/Deposit";
 import Withdraw from "./pages/Withdraw";
 import CryptoTransactions from "./pages/CryptoTransactions";
@@ -45,6 +46,7 @@ const App = () => {
                 <Route path="/activities" element={<Activities />} />
                 <Route path="/packages" element={<Packages />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
                 <Route path="/deposit" element={<Deposit />} />
                 <Route path="/withdraw" element={<Withdraw />} />
                 <Route path="/crypto" element={<CryptoTransactions />} />

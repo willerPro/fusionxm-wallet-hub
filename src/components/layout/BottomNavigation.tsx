@@ -12,7 +12,7 @@ const BottomNavigation = () => {
     { name: "Wallets", path: "/wallets", icon: Wallet },
     { name: "Investors", path: "/investors", icon: Users },
     { name: "Activities", path: "/activities", icon: Activity },
-    { name: "Profile", path: "/profile", icon: Settings },
+    { name: "Settings", path: "/settings", icon: Settings },
   ];
 
   return (
