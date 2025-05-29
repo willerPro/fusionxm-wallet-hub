@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import ProfileForm, { UserProfile } from "@/components/profile/ProfileForm";
 import ProfileMenu from "@/components/profile/ProfileMenu";
 import BotsSection from "@/components/profile/BotsSection";
@@ -15,6 +16,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, session } = useAuth();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("profile");
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -127,12 +129,30 @@ const Profile = () => {
     }
   };
 
+  if (isMobile) {
+    return (
+      <div className="container mx-auto p-3 pb-20 max-w-6xl">
+        <h1 className="text-xl font-semibold mb-4 px-1">My Account</h1>
+        
+        {/* Mobile menu */}
+        <div className="mb-4">
+          <ProfileMenu activeTab={activeTab} onTabChange={setActiveTab} />
+        </div>
+        
+        {/* Content */}
+        <div className="w-full">
+          {renderActiveContent()}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-3 pb-20 max-w-6xl">
       <h1 className="text-xl font-semibold mb-4 px-1">My Account</h1>
       
       <div className="flex flex-col lg:flex-row gap-4">
-        {/* Mobile: Horizontal menu, Desktop: Vertical sidebar */}
+        {/* Desktop sidebar */}
         <div className="lg:w-64 shrink-0">
           <Card className="shadow-sm">
             <CardContent className="p-3">
