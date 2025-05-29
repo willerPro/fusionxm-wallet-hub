@@ -1,15 +1,17 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search, Loader2, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Loader2, Edit, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthContext";
 import ActivityForm from "@/components/activity/ActivityForm";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface Activity {
   id: string;
@@ -23,18 +25,24 @@ export interface Activity {
   amount_in_use: number | null;
   server_space_taken: number | null;
   next_update_set: string | null;
+  wallet?: {
+    name: string;
+    balance: number;
+  };
 }
 
 const Activities = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   
   useEffect(() => {
     if (!user) {
@@ -51,7 +59,10 @@ const Activities = () => {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('activities')
-        .select('*')
+        .select(`
+          *,
+          wallet:wallets(name, balance)
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
@@ -196,6 +207,16 @@ const Activities = () => {
     setIsDialogOpen(true);
   };
 
+  const toggleRowExpansion = (activityId: string) => {
+    const newExpandedRows = new Set(expandedRows);
+    if (newExpandedRows.has(activityId)) {
+      newExpandedRows.delete(activityId);
+    } else {
+      newExpandedRows.add(activityId);
+    }
+    setExpandedRows(newExpandedRows);
+  };
+
   const filteredActivities = activities.filter(
     (activity) =>
       activity.activity_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -239,84 +260,195 @@ const Activities = () => {
       {filteredActivities.length > 0 ? (
         <Card>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Activity Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Current Profit</TableHead>
-                  <TableHead>Amount in Use</TableHead>
-                  <TableHead>Server Space</TableHead>
-                  <TableHead>Next Update</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            {isMobile ? (
+              // Mobile view with expandable cards
+              <div className="space-y-4 p-4">
                 {filteredActivities.map((activity) => (
-                  <TableRow 
-                    key={activity.id}
-                    className={activity.status === 'active' ? 'animate-pulse hover:animate-none' : ''}
-                  >
-                    <TableCell>
-                      <div className={activity.status === 'active' ? 'animate-fade-in' : ''}>
-                        <div className="font-medium">{activity.activity_type}</div>
-                        {activity.description && (
-                          <div className="text-sm text-gray-500">{activity.description}</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
-                        activity.status === 'active' ? 'bg-green-100 text-green-800 animate-scale-in' :
-                        activity.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {activity.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`font-medium transition-colors duration-300 ${
-                        (activity.current_profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                      } ${activity.status === 'active' ? 'hover-scale' : ''}`}>
-                        ${(activity.current_profit || 0).toFixed(2)}
-                      </span>
-                    </TableCell>
-                    <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
-                      ${(activity.amount_in_use || 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
-                      {(activity.server_space_taken || 0).toFixed(1)} MB
-                    </TableCell>
-                    <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
-                      {activity.next_update_set ? 
-                        new Date(activity.next_update_set).toLocaleDateString() : 
-                        'Not set'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
+                  <Card key={activity.id} className="border-l-4 border-l-primary">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-medium text-lg">{activity.activity_type}</h3>
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                            activity.status === 'active' ? 'bg-green-100 text-green-800' :
+                            activity.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {activity.status}
+                          </span>
+                        </div>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEdit(activity)}
-                          className={activity.status === 'active' ? 'hover-scale' : ''}
+                          onClick={() => toggleRowExpansion(activity.id)}
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(activity.id)}
-                          className={activity.status === 'active' ? 'hover-scale' : ''}
-                        >
-                          <Trash2 className="h-4 w-4" />
+                          {expandedRows.has(activity.id) ? 
+                            <ChevronUp className="h-4 w-4" /> : 
+                            <ChevronDown className="h-4 w-4" />
+                          }
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                      
+                      <div className="text-2xl font-bold mb-2">
+                        <span className={
+                          (activity.current_profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                        }>
+                          ${(activity.current_profit || 0).toFixed(2)}
+                        </span>
+                        <span className="text-sm text-gray-500 ml-2">profit</span>
+                      </div>
+
+                      {expandedRows.has(activity.id) && (
+                        <div className="space-y-3 mt-4 pt-4 border-t">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-500">Amount in Use:</span>
+                              <div className="font-medium">${(activity.amount_in_use || 0).toFixed(2)}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Server Space:</span>
+                              <div className="font-medium">{(activity.server_space_taken || 0).toFixed(1)} MB</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Wallet:</span>
+                              <div className="font-medium">
+                                {activity.wallet ? `${activity.wallet.name} ($${activity.wallet.balance.toFixed(2)})` : 'No wallet'}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Next Update:</span>
+                              <div className="font-medium">
+                                {activity.next_update_set ? 
+                                  new Date(activity.next_update_set).toLocaleDateString() : 
+                                  'Not set'
+                                }
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {activity.description && (
+                            <div>
+                              <span className="text-gray-500 text-sm">Description:</span>
+                              <div className="text-sm">{activity.description}</div>
+                            </div>
+                          )}
+                          
+                          <div className="flex space-x-2 pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(activity)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDelete(activity.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            ) : (
+              // Desktop table view
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Activity Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Current Profit</TableHead>
+                    <TableHead>Amount in Use</TableHead>
+                    <TableHead>Server Space</TableHead>
+                    <TableHead>Wallet</TableHead>
+                    <TableHead>Next Update</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredActivities.map((activity) => (
+                    <TableRow 
+                      key={activity.id}
+                      className={activity.status === 'active' ? 'animate-pulse hover:animate-none' : ''}
+                    >
+                      <TableCell>
+                        <div className={activity.status === 'active' ? 'animate-fade-in' : ''}>
+                          <div className="font-medium">{activity.activity_type}</div>
+                          {activity.description && (
+                            <div className="text-sm text-gray-500">{activity.description}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                          activity.status === 'active' ? 'bg-green-100 text-green-800 animate-scale-in' :
+                          activity.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {activity.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`font-medium transition-colors duration-300 ${
+                          (activity.current_profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                        } ${activity.status === 'active' ? 'hover-scale' : ''}`}>
+                          ${(activity.current_profit || 0).toFixed(2)}
+                        </span>
+                      </TableCell>
+                      <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
+                        ${(activity.amount_in_use || 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
+                        {(activity.server_space_taken || 0).toFixed(1)} MB
+                      </TableCell>
+                      <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
+                        {activity.wallet ? (
+                          <div>
+                            <div className="font-medium">{activity.wallet.name}</div>
+                            <div className="text-sm text-gray-500">${activity.wallet.balance.toFixed(2)}</div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">No wallet</span>
+                        )}
+                      </TableCell>
+                      <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
+                        {activity.next_update_set ? 
+                          new Date(activity.next_update_set).toLocaleDateString() : 
+                          'Not set'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(activity)}
+                            className={activity.status === 'active' ? 'hover-scale' : ''}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(activity.id)}
+                            className={activity.status === 'active' ? 'hover-scale' : ''}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       ) : (
