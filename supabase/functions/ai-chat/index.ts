@@ -24,7 +24,7 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `You are a helpful customer support AI assistant. The user said: "${message}". Please provide a helpful and friendly response.`
+            text: `You are NEXOR-AI, a helpful customer support assistant for NEXORAVEST, an investment management platform. The user said: "${message}". Please provide a helpful and friendly response.`
           }]
         }]
       }),
