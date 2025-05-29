@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ export interface Activity {
   activity_type: string;
   description: string | null;
   status: string;
+  wallet_id: string | null;
   date_added: string;
   date_ended: string | null;
   current_profit: number | null;
@@ -73,6 +73,7 @@ const Activities = () => {
     activity_type: string;
     description: string;
     status: string;
+    wallet_id?: string;
     date_ended?: string;
     current_profit?: number;
     amount_in_use?: number;
@@ -92,6 +93,7 @@ const Activities = () => {
             activity_type: activityData.activity_type,
             description: activityData.description,
             status: activityData.status,
+            wallet_id: activityData.wallet_id || null,
             date_ended: activityData.date_ended || null,
             current_profit: activityData.current_profit || 0,
             amount_in_use: activityData.amount_in_use || 0,
@@ -123,6 +125,7 @@ const Activities = () => {
             activity_type: activityData.activity_type,
             description: activityData.description,
             status: activityData.status,
+            wallet_id: activityData.wallet_id || null,
             date_ended: activityData.date_ended || null,
             current_profit: activityData.current_profit || 0,
             amount_in_use: activityData.amount_in_use || 0,
@@ -250,9 +253,12 @@ const Activities = () => {
               </TableHeader>
               <TableBody>
                 {filteredActivities.map((activity) => (
-                  <TableRow key={activity.id}>
+                  <TableRow 
+                    key={activity.id}
+                    className={activity.status === 'active' ? 'animate-pulse hover:animate-none' : ''}
+                  >
                     <TableCell>
-                      <div>
+                      <div className={activity.status === 'active' ? 'animate-fade-in' : ''}>
                         <div className="font-medium">{activity.activity_type}</div>
                         {activity.description && (
                           <div className="text-sm text-gray-500">{activity.description}</div>
@@ -260,8 +266,8 @@ const Activities = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                        activity.status === 'active' ? 'bg-green-100 text-green-800' :
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                        activity.status === 'active' ? 'bg-green-100 text-green-800 animate-scale-in' :
                         activity.status === 'completed' ? 'bg-blue-100 text-blue-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
@@ -269,15 +275,19 @@ const Activities = () => {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className={`font-medium ${
+                      <span className={`font-medium transition-colors duration-300 ${
                         (activity.current_profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      } ${activity.status === 'active' ? 'hover-scale' : ''}`}>
                         ${(activity.current_profit || 0).toFixed(2)}
                       </span>
                     </TableCell>
-                    <TableCell>${(activity.amount_in_use || 0).toFixed(2)}</TableCell>
-                    <TableCell>{(activity.server_space_taken || 0).toFixed(1)} MB</TableCell>
-                    <TableCell>
+                    <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
+                      ${(activity.amount_in_use || 0).toFixed(2)}
+                    </TableCell>
+                    <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
+                      {(activity.server_space_taken || 0).toFixed(1)} MB
+                    </TableCell>
+                    <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
                       {activity.next_update_set ? 
                         new Date(activity.next_update_set).toLocaleDateString() : 
                         'Not set'
@@ -289,6 +299,7 @@ const Activities = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEdit(activity)}
+                          className={activity.status === 'active' ? 'hover-scale' : ''}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -296,6 +307,7 @@ const Activities = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(activity.id)}
+                          className={activity.status === 'active' ? 'hover-scale' : ''}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

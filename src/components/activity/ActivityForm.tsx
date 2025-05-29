@@ -6,12 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthContext";
 
 interface ActivityFormProps {
   onSubmit: (data: {
     activity_type: string;
     description: string;
     status: string;
+    wallet_id?: string;
     date_ended?: string;
     current_profit?: number;
     amount_in_use?: number;
@@ -23,6 +26,7 @@ interface ActivityFormProps {
     activity_type: string;
     description: string | null;
     status: string;
+    wallet_id?: string | null;
     date_ended: string | null;
     current_profit: number | null;
     amount_in_use: number | null;
@@ -32,10 +36,13 @@ interface ActivityFormProps {
 }
 
 const ActivityForm = ({ onSubmit, isLoading, initialData }: ActivityFormProps) => {
+  const { user } = useAuth();
+  const [wallets, setWallets] = useState<{id: string, name: string}[]>([]);
   const [formData, setFormData] = useState({
     activity_type: "",
     description: "",
     status: "active",
+    wallet_id: "",
     date_ended: "",
     current_profit: 0,
     amount_in_use: 0,
@@ -44,11 +51,16 @@ const ActivityForm = ({ onSubmit, isLoading, initialData }: ActivityFormProps) =
   });
 
   useEffect(() => {
+    fetchWallets();
+  }, [user]);
+
+  useEffect(() => {
     if (initialData) {
       setFormData({
         activity_type: initialData.activity_type,
         description: initialData.description || "",
         status: initialData.status,
+        wallet_id: initialData.wallet_id || "",
         date_ended: initialData.date_ended ? initialData.date_ended.split('T')[0] : "",
         current_profit: initialData.current_profit || 0,
         amount_in_use: initialData.amount_in_use || 0,
@@ -58,12 +70,29 @@ const ActivityForm = ({ onSubmit, isLoading, initialData }: ActivityFormProps) =
     }
   }, [initialData]);
 
+  const fetchWallets = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('id, name')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      setWallets(data || []);
+    } catch (error) {
+      console.error("Error fetching wallets:", error);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
       activity_type: formData.activity_type,
       description: formData.description,
       status: formData.status,
+      wallet_id: formData.wallet_id || undefined,
       date_ended: formData.date_ended || undefined,
       current_profit: formData.current_profit,
       amount_in_use: formData.amount_in_use,
@@ -92,6 +121,24 @@ const ActivityForm = ({ onSubmit, isLoading, initialData }: ActivityFormProps) =
           </Select>
         </div>
 
+        <div>
+          <Label htmlFor="wallet">Wallet</Label>
+          <Select value={formData.wallet_id} onValueChange={(value) => setFormData(prev => ({ ...prev, wallet_id: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select wallet" />
+            </SelectTrigger>
+            <SelectContent>
+              {wallets.map((wallet) => (
+                <SelectItem key={wallet.id} value={wallet.id}>
+                  {wallet.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="status">Status</Label>
           <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
