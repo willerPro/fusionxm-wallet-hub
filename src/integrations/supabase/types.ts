@@ -212,6 +212,48 @@ export type Database = {
         }
         Relationships: []
       }
+      packages: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_days: number
+          id: string
+          interest_rate: number
+          max_amount: number | null
+          min_amount: number
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          id?: string
+          interest_rate?: number
+          max_amount?: number | null
+          min_amount?: number
+          name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          id?: string
+          interest_rate?: number
+          max_amount?: number | null
+          min_amount?: number
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -244,6 +286,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+          wallet_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+          wallet_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_settings: {
         Row: {
@@ -286,29 +372,38 @@ export type Database = {
       }
       wallets: {
         Row: {
+          address: string | null
           balance: number
           created_at: string
           currency: string
           id: string
           name: string
+          network: string | null
+          password_protected: boolean | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
           balance?: number
           created_at?: string
           currency?: string
           id?: string
           name: string
+          network?: string | null
+          password_protected?: boolean | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
           balance?: number
           created_at?: string
           currency?: string
           id?: string
           name?: string
+          network?: string | null
+          password_protected?: boolean | null
           updated_at?: string
           user_id?: string
         }

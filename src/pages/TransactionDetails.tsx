@@ -38,7 +38,7 @@ const TransactionDetails = () => {
       try {
         setIsLoading(true);
         const { data, error } = await supabase
-          .from('crypto_transactions')
+          .from('transactions')
           .select(`
             *,
             wallets (

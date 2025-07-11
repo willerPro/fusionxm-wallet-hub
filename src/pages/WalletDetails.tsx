@@ -63,7 +63,7 @@ const WalletDetails = () => {
     
     try {
       const { data, error } = await supabase
-        .from('crypto_transactions')
+        .from('transactions')
         .select('*')
         .eq('wallet_id', id)
         .eq('user_id', user.id)

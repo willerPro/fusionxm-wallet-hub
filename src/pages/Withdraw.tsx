@@ -111,30 +111,28 @@ const Withdraw = () => {
       
       // Create a transaction record
       const { error: transactionError } = await supabase
-        .from('crypto_transactions')
+        .from('transactions')
         .insert({
           wallet_id: wallets[0]?.id, // Use first wallet as reference
           amount: numericAmount,
           type: 'withdrawal',
           status: 'completed',
           user_id: user.id,
-          address: walletAddress,
-          coin_type: 'USD' // Default coin type
+          description: `Withdrawal to ${walletAddress} via ${network} network`
         });
       
       if (transactionError) throw transactionError;
       
       // Create a fee transaction record
       const { error: feeTransactionError } = await supabase
-        .from('crypto_transactions')
+        .from('transactions')
         .insert({
           wallet_id: wallets[0]?.id, // Use first wallet as reference
           amount: WITHDRAWAL_FEE,
           type: 'fee',
           status: 'completed',
           user_id: user.id,
-          address: walletAddress,
-          coin_type: 'USD' // Default coin type
+          description: `Fee for withdrawal to ${walletAddress}`
         });
       
       if (feeTransactionError) throw feeTransactionError;
