@@ -16,7 +16,7 @@ export const signInWithOTP = async (email: string) => {
     const { data, error } = await supabase.auth.signInWithOtp({ 
       email: trimmedEmail,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`
+        shouldCreateUser: false
       }
     });
     
@@ -86,7 +86,7 @@ export const signUpWithOTP = async (email: string, firstName: string, lastName: 
     const { data, error } = await supabase.auth.signInWithOtp({ 
       email: trimmedEmail,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        shouldCreateUser: true,
         data: {
           first_name: firstName,
           last_name: lastName,
