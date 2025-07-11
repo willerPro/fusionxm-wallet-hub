@@ -2,24 +2,56 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Sign in a user with email and password
+ * Sign in a user with email (OTP will be sent)
  * @param email User's email
- * @param password User's password
  * @returns Object containing error if any and data if successful
  */
-export const signIn = async (email: string, password: string) => {
+export const signInWithOTP = async (email: string) => {
   try {
     // Trim email to prevent whitespace issues
     const trimmedEmail = email.trim().toLowerCase();
     
-    console.log("Attempting to sign in with:", trimmedEmail);
+    console.log("Sending OTP to:", trimmedEmail);
     
-    const { data, error } = await supabase.auth.signInWithPassword({ 
-      email: trimmedEmail, 
-      password 
+    const { data, error } = await supabase.auth.signInWithOtp({ 
+      email: trimmedEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`
+      }
     });
     
-    console.log("Sign in result:", error ? "Error" : "Success");
+    console.log("OTP send result:", error ? "Error" : "Success");
+    
+    if (error) {
+      return { error };
+    }
+    
+    return { error: null, data };
+  } catch (error) {
+    console.error("OTP send exception:", error);
+    return { error };
+  }
+};
+
+/**
+ * Verify OTP code
+ * @param email User's email
+ * @param token OTP token
+ * @returns Object containing error if any and data if successful
+ */
+export const verifyOTP = async (email: string, token: string) => {
+  try {
+    const trimmedEmail = email.trim().toLowerCase();
+    
+    console.log("Verifying OTP for:", trimmedEmail);
+    
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: trimmedEmail,
+      token,
+      type: 'email'
+    });
+    
+    console.log("OTP verify result:", error ? "Error" : "Success");
     
     if (error) {
       return { error };
@@ -31,49 +63,41 @@ export const signIn = async (email: string, password: string) => {
     
     return { error: null, data };
   } catch (error) {
-    console.error("Sign in exception:", error);
+    console.error("OTP verify exception:", error);
     return { error };
   }
 };
 
 /**
- * Sign up a new user with email and password
+ * Sign up a new user with email (OTP will be sent)
  * @param email User's email
- * @param password User's password
+ * @param firstName User's first name
+ * @param lastName User's last name
  * @returns Object containing error if any and userCreated flag
  */
-export const signUp = async (email: string, password: string) => {
+export const signUpWithOTP = async (email: string, firstName: string, lastName: string) => {
   try {
     // Trim and lowercase email to prevent issues
     const trimmedEmail = email.trim().toLowerCase();
     
     console.log("Attempting to sign up with:", trimmedEmail);
     
-    // First try to sign up the user
-    const { data, error } = await supabase.auth.signUp({ 
-      email: trimmedEmail, 
-      password 
-    });
-    
-    console.log("Sign up result:", error ? "Error" : "Success");
-    
-    if (error) {
-      // If we got a database error but the user might have been created, inform the user
-      if (error.message && error.message.includes("Database error saving new user")) {
-        console.log("Database error occurred, but user may have been created. Attempting to login...");
-        
-        // Try to log in with the credentials to see if the user was actually created
-        const { error: loginError } = await supabase.auth.signInWithPassword({ 
-          email: trimmedEmail, 
-          password 
-        });
-        
-        if (!loginError) {
-          // User was created and can log in, so this was just an error with the user_settings table
-          return { error: null, userCreated: true };
+    // Sign up with OTP
+    const { data, error } = await supabase.auth.signInWithOtp({ 
+      email: trimmedEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          email: trimmedEmail
         }
       }
-      
+    });
+    
+    console.log("OTP signup result:", error ? "Error" : "Success");
+    
+    if (error) {
       // User already registered check
       if (error.message && error.message.includes("User already registered")) {
         return { error: { message: "An account with this email already exists. Please log in instead." } };
@@ -84,7 +108,7 @@ export const signUp = async (email: string, password: string) => {
     
     return { error: null, userCreated: true };
   } catch (error) {
-    console.error("Sign up exception:", error);
+    console.error("OTP signup exception:", error);
     return { error };
   }
 };
@@ -94,14 +118,20 @@ export const signUp = async (email: string, password: string) => {
  */
 export const signOut = async () => {
   try {
+    // Clear localStorage first
+    localStorage.removeItem("user");
+    localStorage.clear(); // Clear all storage to ensure complete logout
+    
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error("Error signing out:", error);
+      return { error };
     } else {
-      localStorage.removeItem("user");
       console.log("Sign out completed");
+      return { error: null };
     }
   } catch (error) {
     console.error("Exception during sign out:", error);
+    return { error };
   }
 };

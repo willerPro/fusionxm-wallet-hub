@@ -3,15 +3,16 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { sendLoginNotificationEmail } from '@/services/authNotificationService';
-import { signIn as authSignIn, signUp as authSignUp, signOut as authSignOut } from '@/services/authService';
+import { signInWithOTP, signUpWithOTP, verifyOTP, signOut as authSignOut } from '@/services/authService';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 type AuthContextType = {
   session: Session | null;
   user: User | null;
-  signIn: (email: string, password: string) => Promise<{ error: any | null, data?: any }>;
-  signUp: (email: string, password: string) => Promise<{ error: any | null, userCreated?: boolean }>;
-  signOut: () => Promise<void>;
+  signInWithOTP: (email: string) => Promise<{ error: any | null, data?: any }>;
+  signUpWithOTP: (email: string, firstName: string, lastName: string) => Promise<{ error: any | null, userCreated?: boolean }>;
+  verifyOTP: (email: string, token: string) => Promise<{ error: any | null, data?: any }>;
+  signOut: () => Promise<{ error: any | null }>;
   loading: boolean;
 };
 
@@ -100,12 +101,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [navigate, location.pathname]);
 
   // Use the extracted auth functions but keep them in context
-  const signIn = authSignIn;
-  const signUp = authSignUp;
   const signOut = authSignOut;
 
   return (
-    <AuthContext.Provider value={{ session, user, signIn, signUp, signOut, loading }}>
+    <AuthContext.Provider value={{ session, user, signInWithOTP, signUpWithOTP, verifyOTP, signOut, loading }}>
       {children}
     </AuthContext.Provider>
   );

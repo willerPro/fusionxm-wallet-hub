@@ -1,6 +1,6 @@
 
 import React from "react";
-import LoginForm from "@/components/auth/LoginForm";
+import OTPLoginForm from "@/components/auth/OTPLoginForm";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Login = () => {
@@ -17,7 +17,7 @@ const Login = () => {
         <h1 className="text-3xl font-bold text-primary">NEXORAVEST</h1>
         <p className="text-gray-600 mt-1">Investment Management Platform</p>
       </div>
-      <LoginForm />
+      <OTPLoginForm />
     </div>
   );
 };

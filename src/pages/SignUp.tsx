@@ -1,6 +1,6 @@
 
 import React from "react";
-import SignupForm from "@/components/auth/SignupForm";
+import OTPSignupForm from "@/components/auth/OTPSignupForm";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const SignUp = () => {
@@ -17,7 +17,7 @@ const SignUp = () => {
         <h1 className="text-3xl font-bold text-primary">NEXORAVEST</h1>
         <p className="text-gray-600 mt-1">Create Your Investment Account</p>
       </div>
-      <SignupForm />
+      <OTPSignupForm />
     </div>
   );
 };
