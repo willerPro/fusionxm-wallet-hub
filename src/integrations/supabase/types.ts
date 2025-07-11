@@ -16,69 +16,121 @@ export type Database = {
     Tables: {
       activities: {
         Row: {
+          activity_type: string | null
           amount: number
           created_at: string
+          current_profit: number | null
+          date_added: string | null
+          description: string | null
           id: string
+          is_active: boolean | null
           name: string
+          profit: number | null
           status: string
+          total_earned: number | null
           type: string
           updated_at: string
           user_id: string
+          wallet_id: string | null
         }
         Insert: {
+          activity_type?: string | null
           amount?: number
           created_at?: string
+          current_profit?: number | null
+          date_added?: string | null
+          description?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
+          profit?: number | null
           status?: string
+          total_earned?: number | null
           type: string
           updated_at?: string
           user_id: string
+          wallet_id?: string | null
         }
         Update: {
+          activity_type?: string | null
           amount?: number
           created_at?: string
+          current_profit?: number | null
+          date_added?: string | null
+          description?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
+          profit?: number | null
           status?: string
+          total_earned?: number | null
           type?: string
           updated_at?: string
           user_id?: string
+          wallet_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "activities_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bots: {
         Row: {
+          bot_type: string | null
           created_at: string
+          duration: number | null
           id: string
           name: string
           profit: number
+          profit_target: number | null
           status: string
           type: string
           updated_at: string
           user_id: string
+          wallet_id: string | null
         }
         Insert: {
+          bot_type?: string | null
           created_at?: string
+          duration?: number | null
           id?: string
           name: string
           profit?: number
+          profit_target?: number | null
           status?: string
           type: string
           updated_at?: string
           user_id: string
+          wallet_id?: string | null
         }
         Update: {
+          bot_type?: string | null
           created_at?: string
+          duration?: number | null
           id?: string
           name?: string
           profit?: number
+          profit_target?: number | null
           status?: string
           type?: string
           updated_at?: string
           user_id?: string
+          wallet_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bots_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crypto_transactions: {
         Row: {
@@ -188,6 +240,45 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          bot_alerts: boolean
+          created_at: string
+          email_alerts: boolean
+          id: string
+          login_alerts: boolean
+          market_alerts: boolean
+          news_updates: boolean
+          two_factor: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bot_alerts?: boolean
+          created_at?: string
+          email_alerts?: boolean
+          id?: string
+          login_alerts?: boolean
+          market_alerts?: boolean
+          news_updates?: boolean
+          two_factor?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bot_alerts?: boolean
+          created_at?: string
+          email_alerts?: boolean
+          id?: string
+          login_alerts?: boolean
+          market_alerts?: boolean
+          news_updates?: boolean
+          two_factor?: boolean
           updated_at?: string
           user_id?: string
         }
