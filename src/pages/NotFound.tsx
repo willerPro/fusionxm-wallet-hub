@@ -87,10 +87,10 @@ const NotFound = () => {
             </Button>
             <Button 
               variant="outline"
-              onClick={() => window.location.href = '/dashboard'}
+              onClick={() => window.location.href = '/login'}
               className="w-full"
             >
-              Return to Dashboard
+              Return to Login
             </Button>
           </div>
         </div>

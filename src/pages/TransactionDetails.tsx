@@ -38,7 +38,7 @@ const TransactionDetails = () => {
       try {
         setIsLoading(true);
         const { data, error } = await supabase
-          .from('transactions')
+          .from('crypto_transactions')
           .select(`
             *,
             wallets (
@@ -65,8 +65,8 @@ const TransactionDetails = () => {
           amount: data.amount,
           status: data.status,
           created_at: data.created_at,
-          wallet_name: data.wallets.name,
-          wallet_currency: data.wallets.currency
+          wallet_name: data.wallets?.name || 'Unknown',
+          wallet_currency: data.wallets?.currency || 'USD'
         });
       } catch (error) {
         console.error("Error fetching transaction:", error);

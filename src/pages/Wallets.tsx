@@ -48,7 +48,7 @@ const Wallets = () => {
         name: wallet.name,
         balance: Number(wallet.balance || 0),
         currency: wallet.currency,
-        passwordProtected: wallet.password_protected || false
+        passwordProtected: false // password_protected field doesn't exist in database
       }));
       
       setWallets(transformedWallets);
@@ -82,9 +82,7 @@ const Wallets = () => {
           name: walletData.name, 
           currency: walletData.currency,
           balance: 0,
-          user_id: user.id,
-          password_protected: walletData.passwordProtected,
-          backup_key: walletData.backupKey
+          user_id: user.id
         }])
         .select();
       
@@ -96,7 +94,7 @@ const Wallets = () => {
           name: data[0].name,
           balance: Number(data[0].balance || 0),
           currency: data[0].currency,
-          passwordProtected: data[0].password_protected
+          passwordProtected: false // password_protected field doesn't exist in database
         };
         
         setWallets([newWallet, ...wallets]);

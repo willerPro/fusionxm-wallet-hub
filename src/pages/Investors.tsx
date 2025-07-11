@@ -64,9 +64,9 @@ const Investors = () => {
       // Transform the data to match our Investor type
       const transformedInvestors = data.map((investor: any) => ({
         id: investor.id,
-        fullName: `${investor.first_name} ${investor.last_name}`,
+        fullName: investor.name,
         email: investor.email || '',
-        phone: investor.phone || '',
+        phone: '', // Not available in investors table
         investorType: 'individual',
       }));
       
@@ -95,15 +95,15 @@ const Investors = () => {
       if (error) throw error;
       setKycData(data?.map((profile: any) => ({
         id: profile.id,
-        username: profile.email,
-        full_names: `${profile.first_name} ${profile.last_name}`,
+        username: profile.first_name || 'Unknown',
+        full_names: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown',
         identity_type: 'passport',
-        identity_number: '000000000',
-        email: profile.email,
-        phone: profile.phone || '',
-        date_of_birth: '1990-01-01',
-        address: 'Not provided',
-        occupation: 'Not provided',
+        identity_number: profile.phone || '000000000',
+        location: 'Not provided',
+        picture: '',
+        front_pic_id: '',
+        rear_pic_id: '',
+        investor_id: profile.id
       })) || []);
     } catch (error) {
       console.error("Error fetching KYC data:", error);
@@ -130,10 +130,8 @@ const Investors = () => {
         .from('investors')
         .insert([{
           user_id: user.id,
-          first_name: firstName,
-          last_name: lastName,
+          name: investorData.fullName,
           email: investorData.email,
-          phone: investorData.phone,
         }])
         .select();
       
@@ -142,9 +140,9 @@ const Investors = () => {
       if (data && data.length > 0) {
         const newInvestor: Investor = {
           id: data[0].id,
-          fullName: `${data[0].first_name} ${data[0].last_name}`,
+          fullName: data[0].name,
           email: data[0].email || '',
-          phone: data[0].phone || '',
+          phone: '', // Not available in investors table
           investorType: investorData.investorType,
         };
         
@@ -189,22 +187,29 @@ const Investors = () => {
         .from('profiles')
         .insert([{
           user_id: user.id,
-          investor_id: selectedInvestor.id,
-          username: kycFormData.username,
-          full_names: kycFormData.full_names,
-          identity_type: kycFormData.identity_type,
-          identity_number: kycFormData.identity_number,
-          location: kycFormData.location,
-          picture: kycFormData.picture,
-          front_pic_id: kycFormData.front_pic_id,
-          rear_pic_id: kycFormData.rear_pic_id,
+          first_name: kycFormData.username,
+          last_name: kycFormData.full_names.split(' ').slice(1).join(' '),
+          email: selectedInvestor.email,
+          phone: kycFormData.identity_number,
         }])
         .select();
       
       if (error) throw error;
       
       if (data && data.length > 0) {
-        setKycData([...kycData, data[0]]);
+        const newKycData: KycData = {
+          id: data[0].id,
+          username: data[0].first_name || 'Unknown',
+          full_names: `${data[0].first_name || ''} ${data[0].last_name || ''}`.trim() || 'Unknown',
+          identity_type: 'passport',
+          identity_number: data[0].phone || '',
+          location: 'Not provided',
+          picture: '',
+          front_pic_id: '',
+          rear_pic_id: '',
+          investor_id: selectedInvestor.id
+        };
+        setKycData([...kycData, newKycData]);
         toast({
           title: "KYC data added",
           description: `KYC information for ${selectedInvestor.fullName} has been added successfully.`,

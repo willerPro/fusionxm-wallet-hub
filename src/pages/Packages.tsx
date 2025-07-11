@@ -65,10 +65,10 @@ const Packages = () => {
         id: pkg.id,
         name: pkg.name,
         description: pkg.description || '',
-        minAmount: Number(pkg.min_amount),
-        maxAmount: pkg.max_amount ? Number(pkg.max_amount) : null,
-        interestRate: Number(pkg.interest_rate),
-        durationDays: pkg.duration_days
+        minAmount: Number(pkg.amount),
+        maxAmount: Number(pkg.amount) * 2, // Derived from amount
+        interestRate: Number(pkg.profit || 0),
+        durationDays: 30 // Default duration
       }));
       
       setPackages(transformedPackages);
@@ -121,11 +121,12 @@ const Packages = () => {
         .insert({
           name: packageData.name,
           description: packageData.description,
-          min_amount: packageData.minInvestment,
-          max_amount: maxAmount,
-          interest_rate: packageData.expectedReturn,
-          duration_days: durationDays,
-          user_id: user.id // Add the user_id field
+          amount: packageData.minInvestment,
+          profit: packageData.expectedReturn,
+          type: 'package',
+          activity_type: 'investment',
+          user_id: user.id,
+          status: 'active'
         })
         .select();
       
@@ -136,10 +137,10 @@ const Packages = () => {
           id: data[0].id,
           name: data[0].name,
           description: data[0].description || '',
-          minAmount: Number(data[0].min_amount),
-          maxAmount: data[0].max_amount ? Number(data[0].max_amount) : null,
-          interestRate: Number(data[0].interest_rate),
-          durationDays: data[0].duration_days
+          minAmount: Number(data[0].amount),
+          maxAmount: Number(data[0].amount) * 2,
+          interestRate: Number(data[0].profit),
+          durationDays: durationDays
         };
         
         setPackages([newPackage, ...packages]);

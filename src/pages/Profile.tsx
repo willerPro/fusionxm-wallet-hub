@@ -47,10 +47,10 @@ const Profile = () => {
       setProfile({
         fullName: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
         email: data.email || user.email || '',
-        phone: '',
+        phone: data.phone || '',
         company: '',
         role: '',
-        avatar: data.avatar_url
+        avatar: '' // avatar_url not in database
       });
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -80,10 +80,11 @@ const Profile = () => {
         .update({
           first_name: firstName,
           last_name: lastName,
-          avatar_url: profileData.avatar,
+          email: profileData.email,
+          phone: profileData.phone,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id);
+        .eq('user_id', user.id);
       
       if (error) throw error;
       
