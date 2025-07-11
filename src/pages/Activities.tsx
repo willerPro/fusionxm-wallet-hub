@@ -15,16 +15,21 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface Activity {
   id: string;
-  activity_type: string;
-  description: string | null;
-  status: string;
-  wallet_id: string | null;
-  date_added: string;
-  date_ended: string | null;
+  activity_type: string | null;
+  amount: number;
+  created_at: string;
   current_profit: number | null;
-  amount_in_use: number | null;
-  server_space_taken: number | null;
-  next_update_set: string | null;
+  date_added: string | null;
+  description: string | null;
+  is_active: boolean | null;
+  name: string;
+  profit: number | null;
+  status: string;
+  total_earned: number | null;
+  type: string;
+  updated_at: string;
+  user_id: string;
+  wallet_id: string | null;
   wallet?: {
     name: string;
     balance: number;
@@ -94,11 +99,9 @@ const Activities = () => {
     description: string;
     status: string;
     wallet_id?: string;
-    date_ended?: string;
-    current_profit?: number;
-    amount_in_use?: number;
-    server_space_taken?: number;
-    next_update_set?: string;
+    name: string;
+    type: string;
+    amount?: number;
   }) => {
     if (!user) return;
     
@@ -114,11 +117,9 @@ const Activities = () => {
             description: activityData.description,
             status: activityData.status,
             wallet_id: activityData.wallet_id || null,
-            date_ended: activityData.date_ended || null,
-            current_profit: activityData.current_profit || 0,
-            amount_in_use: activityData.amount_in_use || 0,
-            server_space_taken: activityData.server_space_taken || 0,
-            next_update_set: activityData.next_update_set || null,
+            name: activityData.name,
+            type: activityData.type,
+            amount: activityData.amount || 0,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingActivity.id)
@@ -146,11 +147,9 @@ const Activities = () => {
             description: activityData.description,
             status: activityData.status,
             wallet_id: activityData.wallet_id || null,
-            date_ended: activityData.date_ended || null,
-            current_profit: activityData.current_profit || 0,
-            amount_in_use: activityData.amount_in_use || 0,
-            server_space_taken: activityData.server_space_taken || 0,
-            next_update_set: activityData.next_update_set || null,
+            name: activityData.name,
+            type: activityData.type,
+            amount: activityData.amount || 0,
           }])
           .select();
         
@@ -191,7 +190,6 @@ const Activities = () => {
         .from('activities')
         .update({
           status: 'stopped',
-          date_ended: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq('id', stopBotDialog.activity.id)
@@ -202,7 +200,7 @@ const Activities = () => {
       
       if (data && data.length > 0) {
         setActivities(activities.map(activity => 
-          activity.id === stopBotDialog.activity!.id ? { ...activity, status: 'stopped', date_ended: new Date().toISOString() } : activity
+          activity.id === stopBotDialog.activity!.id ? { ...activity, status: 'stopped' } : activity
         ));
         toast({
           title: "Bot stopped",
@@ -364,12 +362,12 @@ const Activities = () => {
                         <div className="space-y-3 mt-4 pt-4 border-t">
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <span className="text-gray-500">Amount in Use:</span>
-                              <div className="font-medium">${(activity.amount_in_use || 0).toFixed(2)}</div>
+                              <span className="text-gray-500">Amount:</span>
+                              <div className="font-medium">${(activity.amount || 0).toFixed(2)}</div>
                             </div>
                             <div>
-                              <span className="text-gray-500">Server Space:</span>
-                              <div className="font-medium">{(activity.server_space_taken || 0).toFixed(1)} MB</div>
+                              <span className="text-gray-500">Current Profit:</span>
+                              <div className="font-medium">${(activity.current_profit || 0).toFixed(2)}</div>
                             </div>
                             <div>
                               <span className="text-gray-500">Wallet:</span>
@@ -378,10 +376,10 @@ const Activities = () => {
                               </div>
                             </div>
                             <div>
-                              <span className="text-gray-500">Next Update:</span>
+                              <span className="text-gray-500">Date Added:</span>
                               <div className="font-medium">
-                                {activity.next_update_set ? 
-                                  new Date(activity.next_update_set).toLocaleDateString() : 
+                                {activity.date_added ? 
+                                  new Date(activity.date_added).toLocaleDateString() : 
                                   'Not set'
                                 }
                               </div>
@@ -429,10 +427,10 @@ const Activities = () => {
                     <TableHead>Activity Type</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Current Profit</TableHead>
-                    <TableHead>Amount in Use</TableHead>
-                    <TableHead>Server Space</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Total Earned</TableHead>
                     <TableHead>Wallet</TableHead>
-                    <TableHead>Next Update</TableHead>
+                    <TableHead>Date Added</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -468,10 +466,10 @@ const Activities = () => {
                         </span>
                       </TableCell>
                       <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
-                        ${(activity.amount_in_use || 0).toFixed(2)}
+                        ${(activity.amount || 0).toFixed(2)}
                       </TableCell>
                       <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
-                        {(activity.server_space_taken || 0).toFixed(1)} MB
+                        ${(activity.total_earned || 0).toFixed(2)}
                       </TableCell>
                       <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
                         {activity.wallet ? (
@@ -484,8 +482,8 @@ const Activities = () => {
                         )}
                       </TableCell>
                       <TableCell className={activity.status === 'active' ? 'hover-scale' : ''}>
-                        {activity.next_update_set ? 
-                          new Date(activity.next_update_set).toLocaleDateString() : 
+                        {activity.date_added ? 
+                          new Date(activity.date_added).toLocaleDateString() : 
                           'Not set'
                         }
                       </TableCell>

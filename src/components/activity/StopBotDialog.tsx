@@ -57,7 +57,7 @@ const StopBotDialog: React.FC<StopBotDialogProps> = ({
             <strong>Warning:</strong> Stopping this bot may result in:
             <ul className="mt-2 ml-4 list-disc space-y-1">
               <li>Loss of current profit: <span className="font-semibold">${(activity.current_profit || 0).toFixed(2)}</span></li>
-              <li>Amount in use: <span className="font-semibold">${(activity.amount_in_use || 0).toFixed(2)}</span></li>
+              <li>Amount in use: <span className="font-semibold">${(activity.amount || 0).toFixed(2)}</span></li>
               {activity.wallet && (
                 <li>Wallet balance: <span className="font-semibold">${activity.wallet.balance.toFixed(2)}</span></li>
               )}

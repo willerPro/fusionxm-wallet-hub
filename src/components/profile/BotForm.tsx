@@ -17,7 +17,7 @@ export interface BotFormProps {
     botType: BotType;
     duration: number;
     profitTarget: number;
-    amount: number;
+    name: string;
   }) => Promise<void>;
   onCancel?: () => void;
 }
@@ -28,7 +28,7 @@ const BotForm: React.FC<BotFormProps> = ({ onSubmit, onCancel }) => {
   const [botType, setBotType] = useState<BotType>('binary');
   const [duration, setDuration] = useState<number>(1);
   const [profitTarget, setProfitTarget] = useState<number>(5);
-  const [amount, setAmount] = useState<number>(500);
+  const [name, setName] = useState<string>('');
   const [wallets, setWallets] = useState<Wallet[]>([]);
 
   useEffect(() => {
@@ -63,7 +63,7 @@ const BotForm: React.FC<BotFormProps> = ({ onSubmit, onCancel }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit({ walletId, botType, duration, profitTarget, amount });
+    await onSubmit({ walletId, botType, duration, profitTarget, name });
   };
 
   return (
@@ -123,11 +123,12 @@ const BotForm: React.FC<BotFormProps> = ({ onSubmit, onCancel }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium leading-none pb-2">Amount (USDT)</label>
+            <label className="block text-sm font-medium leading-none pb-2">Bot Name</label>
             <Input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
+              type="text"
+              value={name}
+              placeholder="Enter bot name"
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
 

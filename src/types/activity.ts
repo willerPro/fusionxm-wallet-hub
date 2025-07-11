@@ -13,10 +13,21 @@ export interface Transaction {
 
 export interface Activity {
   id: string;
-  type: 'deposit' | 'withdraw' | 'transfer' | 'payment';
+  activity_type: string | null;
   amount: number;
-  description: string;
-  date: string;
+  created_at: string;
+  current_profit: number | null;
+  date_added: string | null;
+  description: string | null;
+  is_active: boolean | null;
+  name: string;
+  profit: number | null;
+  status: string;
+  total_earned: number | null;
+  type: string;
+  updated_at: string;
+  user_id: string;
+  wallet_id: string | null;
 }
 
 export interface CryptoTransaction {

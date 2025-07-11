@@ -54,7 +54,7 @@ const Packages = () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('packages')
+        .from('activities')
         .select('*')
         .order('created_at', { ascending: false });
       
@@ -117,7 +117,7 @@ const Packages = () => {
                         packageData.minInvestment * 2;
       
       const { data, error } = await supabase
-        .from('packages')
+        .from('activities')
         .insert({
           name: packageData.name,
           description: packageData.description,

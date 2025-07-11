@@ -10,7 +10,7 @@ interface RecentActivityItemProps {
 
 const RecentActivityItem = ({ activity }: RecentActivityItemProps) => {
   const isDeposit = activity.type === 'deposit';
-  const formattedDate = new Date(activity.date).toLocaleDateString();
+  const formattedDate = new Date(activity.created_at).toLocaleDateString();
   
   return (
     <Link to={`/transactions/${activity.id}`} className="flex items-center justify-between py-2 px-1 hover:bg-gray-100 rounded-md transition-colors">

@@ -88,12 +88,23 @@ const Investors = () => {
     
     try {
       const { data, error } = await supabase
-        .from('kyc')
+        .from('profiles')
         .select('*')
         .eq('user_id', user.id);
       
       if (error) throw error;
-      setKycData(data || []);
+      setKycData(data?.map((profile: any) => ({
+        id: profile.id,
+        username: profile.email,
+        full_names: `${profile.first_name} ${profile.last_name}`,
+        identity_type: 'passport',
+        identity_number: '000000000',
+        email: profile.email,
+        phone: profile.phone || '',
+        date_of_birth: '1990-01-01',
+        address: 'Not provided',
+        occupation: 'Not provided',
+      })) || []);
     } catch (error) {
       console.error("Error fetching KYC data:", error);
     }
@@ -175,7 +186,7 @@ const Investors = () => {
     
     try {
       const { data, error } = await supabase
-        .from('kyc')
+        .from('profiles')
         .insert([{
           user_id: user.id,
           investor_id: selectedInvestor.id,

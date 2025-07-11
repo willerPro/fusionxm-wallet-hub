@@ -46,7 +46,7 @@ const BotCard: React.FC<BotCardProps> = ({ bot, onBotUpdate }) => {
             <strong>Profit Target:</strong> {bot.profit_target}%
           </div>
           <div>
-            <strong>Amount:</strong> {bot.amount} USDT
+            <strong>Profit:</strong> ${bot.profit.toFixed(2)}
           </div>
           <div>
             <strong>Created:</strong> {timeAgo}

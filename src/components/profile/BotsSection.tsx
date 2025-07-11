@@ -73,8 +73,10 @@ const BotsSection = () => {
         bot_type: bot.bot_type as BotType,
         duration: bot.duration,
         profit_target: bot.profit_target,
-        amount: bot.amount,
+        profit: bot.profit,
         status: bot.status,
+        name: bot.name,
+        type: bot.type,
         created_at: bot.created_at,
         updated_at: bot.updated_at
       }));
@@ -97,7 +99,7 @@ const BotsSection = () => {
     botType: BotType;
     duration: number;
     profitTarget: number;
-    amount: number;
+    name: string;
   }) => {
     if (!user) return;
 
@@ -109,8 +111,9 @@ const BotsSection = () => {
           bot_type: botData.botType,
           duration: botData.duration,
           profit_target: botData.profitTarget,
-          amount: botData.amount,
-          status: "running",
+          name: botData.name,
+          type: "automated",
+          status: "active",
         },
       ]).select();
 

@@ -57,23 +57,34 @@ const Dashboard = () => {
         // Set running profit to 0 as requested
         setRunningProfit(0);
         
-        // Fetch recent transactions for the current user
-        const { data: transactionsData, error: transactionsError } = await supabase
-          .from('transactions')
+        // Fetch recent activities for the current user
+        const { data: activitiesData, error: activitiesError } = await supabase
+          .from('activities')
           .select('*, wallets(*)')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(5);
         
-        if (transactionsError) throw transactionsError;
+        if (activitiesError) throw activitiesError;
         
-        // Transform transactions to activities
-        const transformedActivities: Activity[] = transactionsData.map((transaction: any) => ({
-          id: transaction.id,
-          type: transaction.type as Activity['type'],
-          amount: parseFloat(transaction.amount),
-          description: `${transaction.type === 'deposit' ? 'Deposit to' : 'Withdrawal from'} ${transaction.wallets?.name || 'wallet'}`,
-          date: transaction.created_at,
+        // Transform activities to match our Activity interface
+        const transformedActivities = activitiesData.map((activity: any) => ({
+          id: activity.id,
+          activity_type: activity.activity_type,
+          amount: parseFloat(activity.amount || 0),
+          created_at: activity.created_at,
+          current_profit: activity.current_profit,
+          date_added: activity.date_added,
+          description: activity.description || `${activity.activity_type} activity`,
+          is_active: activity.is_active,
+          name: activity.name,
+          profit: activity.profit,
+          status: activity.status,
+          total_earned: activity.total_earned,
+          type: activity.type,
+          updated_at: activity.updated_at,
+          user_id: activity.user_id,
+          wallet_id: activity.wallet_id,
         }));
         
         setActivities(transformedActivities);

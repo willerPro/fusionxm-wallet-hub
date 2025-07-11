@@ -15,11 +15,9 @@ interface ActivityFormProps {
     description: string;
     status: string;
     wallet_id?: string;
-    date_ended?: string;
-    current_profit?: number;
-    amount_in_use?: number;
-    server_space_taken?: number;
-    next_update_set?: string;
+    name: string;
+    type: string;
+    amount?: number;
   }) => void;
   isLoading: boolean;
   initialData?: {
@@ -27,11 +25,9 @@ interface ActivityFormProps {
     description: string | null;
     status: string;
     wallet_id?: string | null;
-    date_ended: string | null;
-    current_profit: number | null;
-    amount_in_use: number | null;
-    server_space_taken: number | null;
-    next_update_set: string | null;
+    name: string;
+    type: string;
+    amount: number;
   } | null;
 }
 
@@ -43,11 +39,9 @@ const ActivityForm = ({ onSubmit, isLoading, initialData }: ActivityFormProps) =
     description: "",
     status: "active",
     wallet_id: "",
-    date_ended: "",
-    current_profit: 0,
-    amount_in_use: 0,
-    server_space_taken: 0,
-    next_update_set: "",
+    name: "",
+    type: "activity",
+    amount: 0,
   });
 
   useEffect(() => {
@@ -61,11 +55,9 @@ const ActivityForm = ({ onSubmit, isLoading, initialData }: ActivityFormProps) =
         description: initialData.description || "",
         status: initialData.status,
         wallet_id: initialData.wallet_id || "",
-        date_ended: initialData.date_ended ? initialData.date_ended.split('T')[0] : "",
-        current_profit: initialData.current_profit || 0,
-        amount_in_use: initialData.amount_in_use || 0,
-        server_space_taken: initialData.server_space_taken || 0,
-        next_update_set: initialData.next_update_set ? initialData.next_update_set.split('T')[0] : "",
+        name: initialData.name,
+        type: initialData.type,
+        amount: initialData.amount,
       });
     }
   }, [initialData]);
@@ -93,11 +85,9 @@ const ActivityForm = ({ onSubmit, isLoading, initialData }: ActivityFormProps) =
       description: formData.description,
       status: formData.status,
       wallet_id: formData.wallet_id || undefined,
-      date_ended: formData.date_ended || undefined,
-      current_profit: formData.current_profit,
-      amount_in_use: formData.amount_in_use,
-      server_space_taken: formData.server_space_taken,
-      next_update_set: formData.next_update_set || undefined,
+      name: formData.name,
+      type: formData.type,
+      amount: formData.amount,
     });
   };
 
@@ -168,65 +158,28 @@ const ActivityForm = ({ onSubmit, isLoading, initialData }: ActivityFormProps) =
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="current_profit">Current Profit ($)</Label>
+          <Label htmlFor="name">Activity Name</Label>
           <Input
-            id="current_profit"
-            type="number"
-            step="0.01"
-            value={formData.current_profit}
-            onChange={(e) => setFormData(prev => ({ ...prev, current_profit: parseFloat(e.target.value) || 0 }))}
-            placeholder="0.00"
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="Activity name..."
+            required
           />
         </div>
 
         <div>
-          <Label htmlFor="amount_in_use">Amount in Use ($)</Label>
+          <Label htmlFor="amount">Amount ($)</Label>
           <Input
-            id="amount_in_use"
+            id="amount"
             type="number"
             step="0.01"
-            value={formData.amount_in_use}
-            onChange={(e) => setFormData(prev => ({ ...prev, amount_in_use: parseFloat(e.target.value) || 0 }))}
+            value={formData.amount}
+            onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
             placeholder="0.00"
           />
         </div>
       </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="server_space_taken">Server Space Taken (MB)</Label>
-          <Input
-            id="server_space_taken"
-            type="number"
-            step="0.1"
-            value={formData.server_space_taken}
-            onChange={(e) => setFormData(prev => ({ ...prev, server_space_taken: parseFloat(e.target.value) || 0 }))}
-            placeholder="0.0"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="next_update_set">Next Update Set</Label>
-          <Input
-            id="next_update_set"
-            type="date"
-            value={formData.next_update_set}
-            onChange={(e) => setFormData(prev => ({ ...prev, next_update_set: e.target.value }))}
-          />
-        </div>
-      </div>
-
-      {formData.status === "completed" && (
-        <div>
-          <Label htmlFor="date_ended">Date Ended</Label>
-          <Input
-            id="date_ended"
-            type="date"
-            value={formData.date_ended}
-            onChange={(e) => setFormData(prev => ({ ...prev, date_ended: e.target.value }))}
-          />
-        </div>
-      )}
 
       <Button type="submit" disabled={isLoading} className="w-full">
         {isLoading ? (
